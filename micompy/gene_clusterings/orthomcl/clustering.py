@@ -1,6 +1,5 @@
 
 import os
-import sh
 import json
 from Bio import SeqIO
 import Bio
@@ -10,8 +9,7 @@ import sys
 import shutil
 from pandas import DataFrame
 from numpy import nan_to_num, prod
-from orthmcl_tools.orthoMCL import orthoMCL;
-import dendropy
+from micompy.gene_clusterings.orthomcl.orthoMCL import orthoMCL
 import re
 import operator
 import pandas
@@ -86,6 +84,123 @@ def make_bmft(data, genomes_of_interest, ancestry, clustering):
     return bmft
    
         
+class GeneCluster(object):
+
+    def __repr__(self): return '<%s object %s, annotated as  %s with %i genes from %i genomes>' % (self.__class__.__name__, self.name, self.annotation, len(self.genes), len(self.genomes))
+
+    def __init__(self, clustering , genes, name = None ):
+
+        self.clustering = clustering
+
+        if type(genes) == dict :
+            self.from_dict(genes)
+        else:
+            self.name = name
+            self.from_list(genes)
+           
+    def to_dict(self):
+        return {u'name': self.name, u'annot_fraction': self.annot_fraction, u'annotation': self.annotation,  u'genes': self.genome_2_gene_map,  u'mapping': self.mapping, "coreness" : self.coreness}
+
+    def from_dict(self,imp):
+        self.name = imp['name']
+        self.genes = imp['mapping'].keys()
+        self.genomes = imp['genes'].keys()
+        self.genome_2_gene_map =  imp['genes']
+        
+        self.annotation = imp['annotation']
+        self.annot_fraction = imp['annot_fraction']
+        self.mapping = imp['mapping']
+        self.coreness = imp['coreness'] if imp.has_key('coreness') else None
+        
+    def from_list(self, genes):
+        self.genomes = list(set([g.split("|")[0] for g in genes]))
+        self.genes = [g.split("|")[1] for g in genes]
+        self.genome_2_gene_map = {go : [ge.split("|")[1] for ge in genes if go == ge.split("|")[0]] for go in self.genomes}
+       
+        sub_dict = {g : self.clustering.id2name_map[g] for g in self.genes}
+        name_counts = Counter(sub_dict.values())
+        total = sum([name_counts[z] for z in name_counts])
+        annot_frac = float(name_counts.most_common()[0][1])/float(total)
+
+        self.annotation = name_counts.most_common(1)[0][0]
+        self.annot_fraction = annot_frac
+        self.mapping = sub_dict
+        self.coreness = self.compute_coreness()
+
+    def to_sequences(self, short=False, genome_name = False, subset = None):
+        if not subset:
+            subset = self.genomes
+        seqs = []
+        for g in self.genomes:
+            if g in subset:
+                genome = [f for f in self.clustering.genomes if f.split("/")[-1].split(".")[0] == g ][0]
+                with open(genome, "r") as handle:
+                    t_seqs = [s for s in SeqIO.parse(handle, "fasta") if s.id in self.genes]
+                    if genome_name:
+                        for s in t_seqs:
+                            s.id = g
+                            s.name = g
+                    if short:
+                        for s in t_seqs:
+                            s.description = ""
+                    seqs += t_seqs
+        return seqs
+
+    def calc_checksum(self, s):
+        return str(sum(ord(c)*i for i,c in enumerate(s)))
+
+    def align(self,output_file, block = True, genome_names = True, subset = None):
+        if not subset:
+            subset = self.genomes
+        with open("temp.faa","w") as unalign:
+            temp_seqs = self.to_sequences(short=True, genome_name = genome_names, subset = subset)
+            SeqIO.write(temp_seqs, unalign, "fasta")
+        os.system(" ".join(["muscle", "-in", "temp.faa","-out", "temp_aligned.faa"]))
+        os.remove("temp.faa")
+        if block:
+            try:
+                    os.system( " ".join([ "Gblocks", "temp_aligned.faa", "-t=p", "-b5=h", "-b4=2", "-b2=0", "-b3=2000", "-b1=0.3"]))
+            except:
+                pass
+
+            if os.path.exists("temp_aligned.faa-gb.htm"):
+                shutil.move("temp_aligned.faa-gb", output_file)
+                os.remove("temp_aligned.faa-gb.htm")
+                os.system(" ".join([ "seqret", "-sequence", "temp_aligned.faa", "-outseq", "nexus:" + ".".join(output_file.split(".")[:-1]) + ".nex" ]))
+                os.remove("temp_aligned.faa")
+                return 1
+            else :
+                return 0
+        else:
+            os.system(" ".join(["seqret", "-sequence", "temp_aligned.faa", "-outseq", "nexus:" + ".".join(output_file.split(".")[:-1]) + ".nex"])  )
+            shutil.move("temp_aligned.faa", output_file)
+            return 1
+
+    def tree_construction(self,alignment, outputtree):
+        os.system(" ".join(["FastTree","-out", outputtree,  alignment]))
+
+        
+    def core_probability(self):
+        present = prod([self.clustering.completnesses[g] for g in self.genomes])
+        abscent = prod([1-v for k,v in self.clustering.completnesses.iteritems() if k not in self.genomes and k in self.clustering.genome2len.keys()])
+        return present*abscent
+
+    def non_core_probability(self):
+        prob_of_random_pres = lambda g: 1.0 - power(float(len(self.clustering)-1)/len(self.clustering) , self.clustering.genome2len[g])
+        prob_of_random_absc = lambda g: power(float(len(self.clustering)-1)/len(self.clustering) , self.clustering.genome2len[g])
+        present = prod([prob_of_random_pres(g) for g in self.genomes])
+        abscent = prod([prob_of_random_absc(k) for k in self.clustering.genome2len.keys() if k not in self.genomes])
+        return present*abscent
+
+    def non_core_probability_plural(self):
+        prob_of_random_pres = lambda g: 1.0 - power(float(sum(self.clustering.genome2len.values())-len(self.genes))/sum(self.clustering.genome2len.values()) , self.clustering.genome2len[g])
+        prob_of_random_absc = lambda g: power(float(sum(self.clustering.genome2len.values())-len(self.genes))/sum(self.clustering.genome2len.values()) , self.clustering.genome2len[g])
+        present = prod([prob_of_random_pres(g) for g in self.genomes])
+        abscent = prod([prob_of_random_absc(k) for k in self.clustering.genome2len.keys() if k not in self.genomes])
+        return present*abscent
+
+    def compute_coreness(self) :
+        return log(self.core_probability()/self.non_core_probability())
     
 class Clustering(object):
 
@@ -217,7 +332,7 @@ class Clustering(object):
         threads = 16 
         print "build a tree"
         if os.path.exists(self.base + "RAxML/" ):
-            sh.rm("-r", self.base + "RAxML/")
+            shutils.rmtree(self.base + "RAxML/")
         os.makedirs(self.base + "RAxML/")
 
         if self.seq_type == "proteins" :
@@ -227,17 +342,17 @@ class Clustering(object):
 
         alignment = self.base + "_scc_cat_align.fasta" if sccs else self.base + "_cat_align.fasta"
         
-        sh.raxmlHPC_PTHREADS_AVX("-w", self.base + "RAxML/", "-T", threads-2, "-m", model, "-p", self.seed, "-#", 20, "-s", alignment, "-n", "T13", "-o", root) 
+        os.system(" ".join(["raxmlHPC_PTHREADS_AVX", "-w", self.base + "RAxML/", "-T", threads-2, "-m", model, "-p", self.seed, "-#", 20, "-s", alignment, "-n", "T13", "-o", root])) 
         print "boostrap dat tree"
-        sh.raxmlHPC_PTHREADS_AVX("-w", self.base + "RAxML/", "-T", threads-2, "-m", model, "-p", self.seed, "-b", self.seed, "-#", 100, "-s", alignment, "-n", "T14", "-o", root)
+        os.system(" ".join(["raxmlHPC_PTHREADS_AVX","-w", self.base + "RAxML/", "-T", threads-2, "-m", model, "-p", self.seed, "-b", self.seed, "-#", 100, "-s", alignment, "-n", "T14", "-o", root]))
         print "combine"
-        sh.raxmlHPC_AVX("-m", "GTRCAT", "-w", self.base + "RAxML/", "-p", self.seed, "-f", "b", "-t", self.base + "RAxML/"+"RAxML_bestTree.T13", "-z",self.base + "RAxML/"+ "RAxML_bootstrap.T14", "-n", "T15", "-o", root)
+        os.system(" ".join(["raxmlHPC_AVX","-m", "GTRCAT", "-w", self.base + "RAxML/", "-p", self.seed, "-f", "b", "-t", self.base + "RAxML/"+"RAxML_bestTree.T13", "-z",self.base + "RAxML/"+ "RAxML_bootstrap.T14", "-n", "T15", "-o", root]))
         print "clean up"
         if os.path.exists(self.base + "_branches_labeled.tree"):
             os.remove(self.base + "_branches_labeled.tree")
             os.remove(self.base + "_nodes_labeled.tree")
-        sh.ln("-s",  self.base + "RAxML/RAxML_bipartitionsBranchLabels.T15", self.base +"_branches_labeled.tree")
-        sh.ln("-s",  self.base + "RAxML/RAxML_bipartitions.T15", self.scg_tree)
+        os.system(" ".join(["ln","-s",  self.base + "RAxML/RAxML_bipartitionsBranchLabels.T15", self.base +"_branches_labeled.tree"]))
+        os.system(" ".join(["ln","-s",  self.base + "RAxML/RAxML_bipartitions.T15", self.scg_tree]))
 
         
     def rm_genome(self, name):
@@ -370,7 +485,7 @@ END;
 
         print "Run and parse paup"
         os.system("paup4a146_centos64 -f -n " + self.anc_rec_path + "Script.nex > " +  self.anc_rec_path + "OutPut.nex")
-        sh.perl("/pica/h1/moritz/repos/Pyscratches/20150610_orthomcl_tools/orthmcl_tools/parsePaupLog.pl", self.anc_rec_path + "OutPut.nex")
+        os.system(" ".join(["perl","/pica/h1/moritz/repos/Pyscratches/20150610_orthomcl_tools/orthmcl_tools/parsePaupLog.pl", self.anc_rec_path + "OutPut.nex"]))
         os.remove(self.anc_rec_path + "OutPut.nex.nodes.johan")
         print "Merge data with clusters"
         merged_json = mergeJSONwPAUP(self.processed_clusters, self.anc_rec_path + "OutPut.nex.changes")
@@ -406,10 +521,10 @@ END;
                 with open("temp.faa","w") as fasta:
                     SeqIO.write(c_seqs,fasta,"fasta")
                 print "aligning genes for",c
-                sh.muscle("-in", "temp.faa","-out", "temp_aligned.faa")
+                os.system(" ".join(["muscle","-in", "temp.faa","-out", "temp_aligned.faa"]))
                 os.remove("temp.faa")
                 try:
-                    sh.Gblocks("temp_aligned.faa", "-tD")
+                    os.system(" ".join(["Gblocks","temp_aligned.faa", "-tD"]))
                 except:
                     pass
         

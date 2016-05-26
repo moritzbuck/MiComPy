@@ -1,7 +1,6 @@
 import os
-import sh
-from orthmcl_tools.Clustering import Clustering
-from orthmcl_tools.orthoMCL import orthoMCL
+from micompy.gene_clusterings.orthomcl.clustering import Clustering
+from micompy.gene_clusterings.orthomcl.orthoMCL import orthoMCL
 from tqdm import tqdm
 from numpy import log
 
