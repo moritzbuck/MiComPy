@@ -1,0 +1,20 @@
+moritz_ID,type,site,environment,secondary,phylum,taxonomy_external,other_ID,other comments,outgroups,short_name
+troutbog_mag_00033,MAG,troutbog,humic lake,,TM7,,,,FALSE,TB_0033
+troutbog_mag_00092,MAG,troutbog,humic lake,,,,,,FALSE,TB_0092
+troutbog_mag_00104,MAG,troutbog,humic lake,,,,,,FALSE,TB_0104
+troutbog_mag_00137,MAG,troutbog,humic lake,,TM7,,,,FALSE,TB_0137
+troutbog_mag_00143,MAG,troutbog,humic lake,,,,,,FALSE,TB_0143
+troutbog_mag_00202,MAG,troutbog,humic lake,,,,,,FALSE,TB_0202
+troutbog_mag_00221,MAG,troutbog,humic lake,,,,,,FALSE,TB_0221
+troutbog_mag_00246,MAG,troutbog,humic lake,,,,,,FALSE,TB_0246
+troutbog_mag_00282,MAG,troutbog,humic lake,,,,,,FALSE,TB_0282
+Microgenomates_bacterium_SCGC_AAA011_J08,,,,,OP11,,,,TRUE,OP11J08
+Microgenomates_bacterium_SCGC_AAA011_L6,,,,,OP11,,,,TRUE,OP11L6
+Microgenomates_bacterium_SCGC_AAA040_P11,,,,,OP11,,,,TRUE,OP11P11
+Microgenomates_bacterium_SCGC_AAA255_J07,,,,,OP11,,,,TRUE,OP11J07
+alinen_sag_H5,SAG,alinen,humic lake,hypolimnion,,,,,,AM_H5
+alinen_sag_I9,SAG,alinen,humic lake,hypolimnion,,,,,,AM_I9
+alinen_sag_K14,SAG,alinen,humic lake,hypolimnion,,,,,,AM_K14
+alinen_sag_K7,SAG,alinen,humic lake,hypolimnion,,,,,,AM_K7
+alinen_sag_M21,SAG,alinen,humic lake,hypolimnion,,,,,,AM_M21
+alinen_sag_N17,SAG,alinen,humic lake,hypolimnion,,,,,,AM_N17

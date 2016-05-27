@@ -1,5 +1,4 @@
 from micompy.common.utils.intrasimilarity import NIC_similarity
-from subprocess import call
 import os
 from os.path import join as pjoin
 import json

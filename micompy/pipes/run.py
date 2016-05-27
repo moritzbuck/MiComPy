@@ -12,14 +12,14 @@
 
 import os
 from pandas import DataFrame
-from all_hands.genome import Genome
+from micompy.common.genome import Genome
 from os.path import join as pjoin
 from subprocess import call
-from all_hands.analyses import *
-from all_hands.utils import renaming_tree
+from micompy.pipe.analyses import *
+from micompy.common.utils import renaming_tree
 import sys
-from orthmcl_tools.orthoMCL import orthoMCL
-from orthmcl_tools.Clustering import Clustering
+from micompy.gene_clustering.orthomcl.orthoMCL import orthoMCL
+from micompy.gene_clustering.orthomcl.clustering import Clustering
 from tqdm import tqdm
 import sh
 

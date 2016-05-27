@@ -38,4 +38,23 @@ except :
 	pass
 
 
+print "loading genomes"
+
+root = "test_data/"
+data_root = pjoin(root, "data/")
+analyses_root = pjoin(root, "analyses/")
+google_data = pjoin(root, "metadata.csv")
+manual_metadata = DataFrame.from_csv(google_data).transpose().to_dict()
+cpus = 1
+all_genomes = []
+
+for dir in os.listdir(data_root):
+    dir = pjoin(data_root,dir)
+    for g in os.listdir(dir):
+        g_dir = pjoin(dir,g)
+        fasta = [f for f in os.listdir(g_dir) if ".fasta" in f and not ".fasta." in f]
+        assert len(fasta) == 1
+        all_genomes += [Genome(g, g_dir, pjoin(g_dir,fasta[0]), manual_metadata[g])]
+
+
 print "All went well!"
