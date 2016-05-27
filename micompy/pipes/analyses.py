@@ -6,6 +6,7 @@ from pandas import read_table
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
+from subprocess import call
 
 def annotation(genomes, cpus = 1, clean = False):
     for g in genomes:

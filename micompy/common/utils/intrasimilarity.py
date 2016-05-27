@@ -10,6 +10,7 @@ import scipy.cluster.hierarchy as sch
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from tqdm  import tqdm
+from subprocess import call
 
 nb_proc =15
 
@@ -72,9 +73,9 @@ def find_NICs(query, subject, identity_threshold = 95, length_threshold = 0.95, 
 
     if blast_db:    
         with open("/dev/null") as null:
-            blastdb_return = subprocess.call(blast_db_cmd, stdout=null)
+            blastdb_return = call(blast_db_cmd, stdout=null)
     with open("/dev/null") as null:
-        blast_return = subprocess.call(blast_cmd, shell=True, stderr=null)
+        blast_return = call(blast_cmd, shell=True, stderr=null)
 
     # open blast data
     if os.path.getsize(blast_outp) > 0:
@@ -139,7 +140,7 @@ def compare_assemblies(assemblies, chunk_size = 2000, identity_threshold = 0.40)
     for subject_name, subject in tqdm(assemblies.iteritems()):
         blast_db_cmd = ["makeblastdb" ,"-in", subject, "-dbtype", "nucl", "-out", subject]
         with open("/dev/null") as null:
-            blastdb_return = subprocess.call(blast_db_cmd, stdout=null)
+            blastdb_return = call(blast_db_cmd, stdout=null)
 
     print "Run the hell out of it"
     for scaff_name, scaff in tqdm(assemblies.iteritems()):
