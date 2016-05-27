@@ -11,7 +11,6 @@ import shutil
 from pandas import DataFrame
 from numpy import nan_to_num, prod
 from orthmcl_tools.orthoMCL import orthoMCL;
-import dendropy
 import re
 import operator
 import pandas
@@ -27,7 +26,7 @@ class Clustering(object):
     def __getitem__(self, key): return self.clusters[key]
 
         
-    def __init__(self,proteoms,  out_path, name, mcl, gff = None, seq_type="proteins", checkm = None, name_map = None):
+    def __init__(self,proteoms,  out_path, name, gff = None, seq_type="proteins", checkm = None, name_map = None):
 
         self.genomes = proteoms
         self.seq_type = seq_type
@@ -72,9 +71,6 @@ class Clustering(object):
                     self.id2name_map.update(temp)
 
                 
-            
-        self.orthoMCL = mcl #orthoMCL(self.oMCL_path, self.genomes, self.name)
-        self.raw_clusters = self.orthoMCL.out_mcl
         self.anc_rec_path = out_path + "AncRec/"
     
     def single_copy_clusters(self):
@@ -108,10 +104,8 @@ class Clustering(object):
             json.dump([c.to_dict() for c in self.clusters], outfile,  indent=4, sort_keys=True)
 
     def run(self):
-#        self.orthoMCL.full_pipe()
-        print "post-process"
-        self.post_process()
-        
+        return None:
+
     def align_all(self):
         print "aligning the hell out of it"
         if os.path.exists(self.align_path):

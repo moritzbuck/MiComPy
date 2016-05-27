@@ -1,13 +1,13 @@
 import sys, os
-from subprocess import check_output
+from subprocess import check_output, call
+from os.path import join as pjoin
 
 core = False
 
 def printerr(l):
 	print('\033[93m [ERR] ' + l + '\033[0m')
 
-if __name__ == '__main__':
-    
+if __name__ == '__main__':  
     class Unbuffered(object):
         def __init__(self, stream):
             self.stream = stream
@@ -16,7 +16,6 @@ if __name__ == '__main__':
             self.stream.flush()
         def __getattr__(self, attr):
             return getattr(self.stream, attr)
-
     sys.stdout = Unbuffered(sys.stdout)
 
 devnull = open(os.devnull, 'w')
@@ -46,7 +45,7 @@ except :
 
 print "Checking if all exes there"
 #try:
-exes = ["find", "blastn", "makeblastdb", "prokka"]
+exes = ["find", "blastn", "makeblastdb", "prokka", "hmmsearch", "cat"]
 if not all([call(["which",cmd], stdout = devnull) == 0 for cmd in exes]) :
 	printerr("Missing executables : ")
 	printerr(",".join([cmd for cmd in exes if call(["which",cmd], stdout = devnull) == 1]))
@@ -72,8 +71,9 @@ for g in manual_metadata.keys():
 if not core:
 	try :
 		print "testing genome clustering with NICsimilarity"
-		cluster_genomes(all_genomes,pjoin(analyses_root,"rifle_clusters.tsv"),cutoff=0.95)
-		annotation(all_genomes)
+#		cluster_genomes(all_genomes,pjoin(analyses_root,"rifle_clusters.tsv"),cutoff=0.95)
+		print "testing annotation"
+		annotation(all_genomes, cpus = 8 , )
 	except : 
 		printerr("non-core functions broken")
 	print "non-core functions work"

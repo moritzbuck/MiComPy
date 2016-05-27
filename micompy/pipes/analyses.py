@@ -11,7 +11,7 @@ from subprocess import call
 def annotation(genomes, cpus = 1, clean = False):
     for g in genomes:
         if clean or not g.is_annotated():
-            g.prokka()
+            g.prokka(cpus = cpus)
 
 def concat_core_tree(clusters, path, min_clust_size = 10, min_coreness = 0, min_new_completness = 0.3 ):
     

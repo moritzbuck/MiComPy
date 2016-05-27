@@ -41,7 +41,7 @@ class Genome(object):
         self.short_proteom = pjoin(self.path, self.metadata['short_name'] + ".faa") if self.metadata['short_name'] == self.metadata['short_name'] else None
     
     def prokka(self, cpus=1, sequence = None):
-        return call(["prokka", "--outdir", self.path, "--force",  "--prefix" , self.name, "--locustag", self.name, "--cpus", str(cpus), sequence if sequence else self.ref])
+        return call(["prokka", "--centre", "X", "--compliant", "--outdir", self.path, "--force",  "--prefix" , self.name, "--locustag", self.name, "--cpus", str(cpus), sequence if sequence else self.ref])
 
     def is_annotated(self):
         return os.path.exists(self.proteom)

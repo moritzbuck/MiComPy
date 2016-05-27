@@ -12,16 +12,19 @@
 
 import os
 from pandas import DataFrame
-from micompy.common.genome import Genome
 from os.path import join as pjoin
 from subprocess import call
-from micompy.pipe.analyses import *
-from micompy.common.utils import renaming_tree
 import sys
-from micompy.gene_clustering.orthomcl.orthoMCL import orthoMCL
-from micompy.gene_clustering.orthomcl.clustering import Clustering
 from tqdm import tqdm
 import sh
+from micompy.common.genome import Genome
+from micompy.pipes.analyses import *
+from micompy.common.utils.renaming_tree import renaming_tree
+from micompy.common.utils.intrasimilarity import NIC_similarity
+from micompy.gene_clusterings.orthomcl.orthoMCL import orthoMCL
+from micompy.gene_clusterings.orthomcl.clustering import Clustering
+
+
 
 root = "/home/moritz/people/moritz/CDs/"
 data_root = pjoin(root, "data/")
