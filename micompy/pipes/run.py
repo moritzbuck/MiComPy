@@ -63,51 +63,51 @@ for c in clusters.single_copy_clusters():
             g2clusters[name_map[cc]] += [ c.name ]
 
         
-if __name__ == '__main__':
-    
-    class Unbuffered(object):
-        def __init__(self, stream):
-            self.stream = stream
-        def write(self, data):
-            self.stream.write(data)
-            self.stream.flush()
-        def __getattr__(self, attr):
-            return getattr(self.stream, attr)
-
-    sys.stdout = Unbuffered(sys.stdout)
-    
-#   annotation(all_genomes)
-#    cluster_genomes(all_genomes,pjoin(analyses_root,"rifle_clusters.tsv"),cutoff=0.95)
-#    phylophlan(all_clusters, pjoin(analyses_root), proj_name = "all_od1s_plus", cpus=16)
-#    for g in all_genomes:
-#        if g.metadata['short_name'] == g.metadata['short_name']:
-#            os.system("sed 's/%s/%s/g' %s > %s" %(g.name, g.metadata['short_name'], g.proteom, pjoin(g.path, g.metadata['short_name'] + ".faa")))
-#    checkm(all_genomes,pjoin(analyses_root,"checkm"), cpus=16)
-#    for g in all_genomes:
-#        parse_checkm_results(g, pjoin(analyses_root, "checkm"))
-#    mcl.start_server()
-#    mcl.full_pipe()
-#    mcl.stop_server()
-#    clusters.post_process()
-    all_trees = []
-    threash = len([g for g in all_genomes if g.is_good()])*0.05
-    short_names = {g.name : g.metadata['short_name'] for g in all_genomes if g.is_good()}
-    for c in tqdm(clusters.single_copy_clusters()):
-        if len(c.genomes) > threash :
-#            if not os.path.exists(pjoin(clusters.path, "clusters/", c.name, "align")):
-#                os.makedirs(pjoin(clusters.path, "clusters/", c.name, "align"))
-#            if not os.path.exists(pjoin(clusters.path, "clusters/", c.name, "tree")):
-#                os.makedirs(pjoin(clusters.path, "clusters/", c.name, "tree"))
-#            c.align(pjoin(clusters.path, "clusters/", c.name, "align", c.name + "_aligned.faa"), block=False, genome_names = True)
-#            if os.path.exists(pjoin(clusters.path, "clusters/", c.name, "align", c.name + "_aligned_blocked.faa")):
-#                c.tree_construction(pjoin(clusters.path, "clusters/", c.name, "align", c.name + "_aligned_blocked.faa"), pjoin(clusters.path, "clusters/", c.name, "tree", c.name + ".tree"))
-#                renaming_tree(pjoin(clusters.path, "clusters/", c.name, "tree", c.name + ".tree"), pjoin(clusters.path, "clusters/", c.name, "tree", "short_" + c.name + ".tree"), short_names)
-                all_trees += [pjoin(clusters.path, "clusters/", c.name, "tree",  c.name + ".tree")] 
-    sh.cat(*all_trees, _out = pjoin(clusters.path , "tree_set.tree"))
-    concat_core_tree(clusters, pjoin(analyses_root, "tree_trunk"))
-    
-"""
-prset aamodelpr = mixed
-mcmc nchains = 1 ngen = 300000
-
-"""
+#if __name__ == '__main__':
+#    
+#    class Unbuffered(object):
+#        def __init__(self, stream):
+#            self.stream = stream
+#        def write(self, data):
+#            self.stream.write(data)
+#            self.stream.flush()
+#        def __getattr__(self, attr):
+#            return getattr(self.stream, attr)
+#
+#    sys.stdout = Unbuffered(sys.stdout)
+#    
+##   annotation(all_genomes)
+##    cluster_genomes(all_genomes,pjoin(analyses_root,"rifle_clusters.tsv"),cutoff=0.95)
+##    phylophlan(all_clusters, pjoin(analyses_root), proj_name = "all_od1s_plus", cpus=16)
+##    for g in all_genomes:
+##        if g.metadata['short_name'] == g.metadata['short_name']:
+##            os.system("sed 's/%s/%s/g' %s > %s" %(g.name, g.metadata['short_name'], g.proteom, pjoin(g.path, g.metadata['short_name'] + ".faa")))
+##    checkm(all_genomes,pjoin(analyses_root,"checkm"), cpus=16)
+##    for g in all_genomes:
+##        parse_checkm_results(g, pjoin(analyses_root, "checkm"))
+##    mcl.start_server()
+##    mcl.full_pipe()
+##    mcl.stop_server()
+##    clusters.post_process()
+#    all_trees = []
+#    threash = len([g for g in all_genomes if g.is_good()])*0.05
+#    short_names = {g.name : g.metadata['short_name'] for g in all_genomes if g.is_good()}
+#    for c in tqdm(clusters.single_copy_clusters()):
+#        if len(c.genomes) > threash :
+##            if not os.path.exists(pjoin(clusters.path, "clusters/", c.name, "align")):
+##                os.makedirs(pjoin(clusters.path, "clusters/", c.name, "align"))
+##            if not os.path.exists(pjoin(clusters.path, "clusters/", c.name, "tree")):
+##                os.makedirs(pjoin(clusters.path, "clusters/", c.name, "tree"))
+##            c.align(pjoin(clusters.path, "clusters/", c.name, "align", c.name + "_aligned.faa"), block=False, genome_names = True)
+##            if os.path.exists(pjoin(clusters.path, "clusters/", c.name, "align", c.name + "_aligned_blocked.faa")):
+##                c.tree_construction(pjoin(clusters.path, "clusters/", c.name, "align", c.name + "_aligned_blocked.faa"), pjoin(clusters.path, "clusters/", c.name, "tree", c.name + ".tree"))
+##                renaming_tree(pjoin(clusters.path, "clusters/", c.name, "tree", c.name + ".tree"), pjoin(clusters.path, "clusters/", c.name, "tree", "short_" + c.name + ".tree"), short_names)
+#                all_trees += [pjoin(clusters.path, "clusters/", c.name, "tree",  c.name + ".tree")] 
+#    sh.cat(*all_trees, _out = pjoin(clusters.path , "tree_set.tree"))
+#    concat_core_tree(clusters, pjoin(analyses_root, "tree_trunk"))
+#    
+#"""
+#prset aamodelpr = mixed
+#mcmc nchains = 1 ngen = 300000
+#
+#"""
