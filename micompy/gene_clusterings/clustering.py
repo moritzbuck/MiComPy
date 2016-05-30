@@ -104,7 +104,7 @@ class Clustering(object):
             json.dump([c.to_dict() for c in self.clusters], outfile,  indent=4, sort_keys=True)
 
     def run(self):
-        return None:
+        return None
 
     def align_all(self):
         print "aligning the hell out of it"
