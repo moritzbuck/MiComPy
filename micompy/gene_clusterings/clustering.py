@@ -10,7 +10,6 @@ import sys
 import shutil
 from pandas import DataFrame
 from numpy import nan_to_num, prod
-from orthmcl_tools.orthoMCL import orthoMCL;
 import re
 import operator
 import pandas
