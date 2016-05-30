@@ -1,6 +1,5 @@
 
 import os
-import sh
 import json
 from Bio import SeqIO
 import Bio
@@ -399,3 +398,7 @@ def trash(data):
         genes = ";".join(d['mapping'].keys())
         line = [ name, hname, c_name ] + counts + [ frmo, diff, frmo2, diff2, icounts, ocounts, genes ] 
         lines +=  [[str(l) for l in line]]
+
+
+def test():
+    return
