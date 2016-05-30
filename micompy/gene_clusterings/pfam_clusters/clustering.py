@@ -8,16 +8,15 @@ from tqdm import tqdm
 class PfamClustering(Clustering):
 
 	def __init__(self,proteoms, out_path, name, gff = None, seq_type="proteins", checkm = None, name_map = None):
-
 		Clustering.__init__(self,proteoms, out_path, name, gff = None, seq_type="proteins", checkm = None, name_map = None)
 
-    def run(self):
-		call(" ".join(["cat"] + self.proteoms  + [ " > " + pjoin(temp_loc, "full_proteom.faa")]) 
-		shutil.copy(pfama_loc, temp_loc)   	
-    	call(["hmmsearch --cpu 16 -o", pjoin(temp_loc,"hmmer_good_prots.raw"), pjoin(temp_loc,"Pfam-A.hmm"), pjoin(temp_loc, "full_proteom.faa") ])
-    	self.hmm_dict = self.parse_hmmer_results(pjoin(temp_loc,"hmmer_good_prots.raw"))
+	def run(self):
+		call(" ".join(["cat"] + self.proteoms + [ " > " + pjoin(temp_loc, "full_proteom.faa")]) 
+		shutil.copy(pfama_loc, temp_loc)
+		call(["hmmsearch --cpu 16 -o", pjoin(temp_loc,"hmmer_good_prots.raw"), pjoin(temp_loc,"Pfam-A.hmm"), pjoin(temp_loc, "full_proteom.faa") ])
+		self.hmm_dict = self.parse_hmmer_results(pjoin(temp_loc,"hmmer_good_prots.raw"))
 
-    def parse_hmmer_results(self, file):
+	def parse_hmmer_results(self, file):
 
 		entries = []
 		t = []
