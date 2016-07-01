@@ -399,6 +399,3 @@ def trash(data):
         line = [ name, hname, c_name ] + counts + [ frmo, diff, frmo2, diff2, icounts, ocounts, genes ] 
         lines +=  [[str(l) for l in line]]
 
-
-def test():
-    return

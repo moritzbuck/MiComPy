@@ -1,4 +1,4 @@
-class GeneCluster(object):
+cralass GeneCluster(object):
 
     def __repr__(self): return '<%s object %s, annotated as  %s with %i genes from %i genomes>' % (self.__class__.__name__, self.name, self.annotation, len(self.genes), len(self.genomes))
 

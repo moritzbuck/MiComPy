@@ -26,7 +26,7 @@ from micompy.gene_clusterings.orthomcl.clustering import Clustering
 
 
 
-root = "/home/moritz/people/moritz/CDs/"
+root = "/home/moritzbuck/people/moritz/CDs/"
 data_root = pjoin(root, "data/")
 analyses_root = pjoin(root, "analyses/")
 google_data = pjoin(root, "OD1s and more - Sheet1.csv")
