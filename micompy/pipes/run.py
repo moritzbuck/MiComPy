@@ -48,6 +48,9 @@ short_proteoms = [g.short_proteom if g.short_proteom else g.proteom for g in all
 proteoms = [g.proteom for g in all_genomes if g.is_good()]
 name_map = {g.name  : g.conv_name() for g in all_genomes if g.name  !=  g.conv_name() }
 rev_name_map = {v:k for k,v in name_map.iteritems()}
+name_map.update({g.conv_name : g.conv_name for g in all_genomes })
+rev_name_map.update({g.name : g.name for g in all_genomes })
+
 mcl = orthoMCL(pjoin(analyses_root, "orthoMCL/"), short_proteoms, "big_clustering")
 clusters = Clustering(proteoms, pjoin(analyses_root, "clustering/"),"candidate_divs", mcl, checkm = pjoin(analyses_root,"checkm"),  name_map = name_map)
 
