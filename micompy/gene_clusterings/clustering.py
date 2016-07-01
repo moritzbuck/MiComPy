@@ -8,12 +8,9 @@ from tqdm import tqdm
 import sys
 import shutil
 from pandas import DataFrame
-from numpy import nan_to_num, prod
 import re
 import operator
 import pandas
-from numpy import power
-from numpy import log
 import shutil
     
 class Clustering(object):
@@ -29,14 +26,13 @@ class Clustering(object):
         self.genomes = proteoms
         self.seq_type = seq_type
         self.path = out_path
-        self.oMCL_path = mcl.out_dir
         if not os.path.exists(out_path):
             os.makedirs(out_path)
 
         if checkm:
             self.checkm = pandas.read_table(checkm, skiprows = 3, index_col = 0, sep = r"\s*", names = ["genome", "lineage","nb_gen", "nb_markers", "nb_sets", "0", "1","2","3","4","5+", "completness", "contamination", "heterogeneity"], comment = '-')
             self.completnesses = (self.checkm['completness']/100.0).to_dict()
-#            self.completnesses = {unicode(k): v if v < 0.95 else 0.95 for k,v in self.completnesses.iteritems()}
+            self.completnesses = {unicode(k): v if v < 0.95 else 0.95 for k,v in self.completnesses.iteritems()}
         self.seed = 23
         self.name = name
         self.base = self.path + self.name
@@ -46,7 +42,6 @@ class Clustering(object):
         self.processed_clusters = self.base + ".json"
         self.align_path = self.base + "_align/"
         self.scc_align_path = self.base + "_scc_align/"
-        self.db = self.oMCL_path + "goodProteins.fasta"
         if os.path.exists(self.processed_clusters):
             with open(self.processed_clusters) as file:
                 self.clusters= [GeneCluster(self,c) for c in json.load(file)]
@@ -68,8 +63,12 @@ class Clustering(object):
                     self.gene2genome.update({gene : ".".join(g.split(".")[:-1]).split("/")[-1] for gene in temp.keys()})
                     self.id2name_map.update(temp)
 
-                
+        if name_map:
+            self.gene2genome.update({v : "_".join([self.name_map["_".join(k.split("_")[:-1])],k.split("_")[-1]])  for k,v in self.id2name_map.iteritems()})
+            self.id2name_map.update({"_".join([self.name_map["_".join(k.split("_")[:-1])],k.split("_")[-1]])   : v for k,v in self.id2name_map.iteritems()})
+
         self.anc_rec_path = out_path + "AncRec/"
+        
     
     def single_copy_clusters(self):
         return [c for c in self.clusters if len(c.genes) == len(c.genomes) and len(c.genomes) > 1]
@@ -92,11 +91,11 @@ class Clustering(object):
             else :
                 self.clusters=[GeneCluster(self, name=l[:-1].split(": ")[0], genes = l[:-1].split(": ")[1].split()) for l in tqdm(c_file.readlines())]
             
-        print "Post processing single genes:"
-        non_singletons = set(sum([c.genes for c in self.clusters],[]))
-        for i in tqdm(self.id2name_map.keys()):
-            if i not in non_singletons:
-                self.clusters += [GeneCluster(self, name = i,  genes =  [self.gene2genome[i] + "|" + i ])]
+#        print "Post processing single genes:"
+#        non_singletons = set(sum([c.genes for c in self.clusters],[]))
+#        for i in tqdm(self.id2name_map.keys()):
+#            if i not in non_singletons:
+#                self.clusters += [GeneCluster(self, name = i,  genes =  [self.gene2genome[i] + "|" + i ])]
             
         with open(self.processed_clusters, 'w') as outfile:
             json.dump([c.to_dict() for c in self.clusters], outfile,  indent=4, sort_keys=True)

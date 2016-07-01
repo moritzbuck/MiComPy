@@ -1,17 +1,23 @@
-cralass GeneCluster(object):
+from collections import Counter
+from numpy import power
+from numpy import log
+from numpy import nan_to_num, prod
 
+
+
+class GeneCluster(object):
     def __repr__(self): return '<%s object %s, annotated as  %s with %i genes from %i genomes>' % (self.__class__.__name__, self.name, self.annotation, len(self.genes), len(self.genomes))
 
     def __init__(self, clustering , genes, name = None ):
 
         self.clustering = clustering
-
+        self.coreness = None
         if type(genes) == dict :
             self.from_dict(genes)
         else:
             self.name = name
             self.from_list(genes)
-           
+             
     def to_dict(self):
         return {u'name': self.name, u'annot_fraction': self.annot_fraction, u'annotation': self.annotation,  u'genes': self.genome_2_gene_map,  u'mapping': self.mapping, "coreness" : self.coreness}
 
@@ -39,7 +45,7 @@ cralass GeneCluster(object):
         self.annotation = name_counts.most_common(1)[0][0]
         self.annot_fraction = annot_frac
         self.mapping = sub_dict
-        self.coreness = self.compute_coreness()
+#        self.coreness = self.compute_coreness()
 
     def to_sequences(self, short=False, genome_name = False, subset = None):
         if not subset:

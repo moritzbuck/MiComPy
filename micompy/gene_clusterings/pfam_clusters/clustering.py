@@ -4,10 +4,12 @@ from subprocess import call
 import shutil
 from micompy.common.utils.params import cpus, pfama_loc, temp_loc, pjoin
 from tqdm import tqdm 
+import json
+
 
 class PfamClustering(Clustering):
 	def __init__(self,proteoms, out_path, name, gff = None, seq_type="proteins", checkm = None, name_map = None):
-		Clustering.__init__(self,proteoms, out_path, name, gff = None, seq_type="proteins", checkm = None, name_map = None)
+		Clustering.__init__(self,proteoms, out_path, name, gff = gff, seq_type="proteins", checkm = checkm, name_map = name_map)
 
 	def run(self):
 		call(" ".join(["cat"] + self.proteoms + [ " > " + pjoin(temp_loc, "full_proteom.faa")]))
@@ -55,12 +57,12 @@ class PfamClustering(Clustering):
 
 	def post_process(self):
 		print "Post processing PFAM cluster:"
-		self.clusters=[GeneCluster(self, name=k, genes =   h['cdss']) for k,h in tqdm(self.hmm_dict.iteritems())]
+		self.clusters=[GeneCluster(self, name=k, genes =   h['cdss']) for k,h in tqdm(self.hmm_dict.iteritems()) if len(h['cdss']) > 0]
 		print "Post processing single genes:"
-		non_singletons = set(sum([c.genes for c in self.clusters],[]))
-		for i in tqdm(self.id2name_map.keys()):
-			if i not in non_singletons:
-				self.clusters += [GeneCluster(self, name = i,  genes =  [self.gene2genome[i] + "|" + i ])]
+#		non_singletons = set(sum([c.genes for c in self.clusters],[]))
+#		for i in tqdm(self.id2name_map.keys()):
+#			if i not in non_singletons:
+#				self.clusters += [GeneCluster(self, name = i,  genes =  [self.gene2genome[i] + "|" + i ])]
 			
 		with open(self.processed_clusters, 'w') as outfile:
 			json.dump([c.to_dict() for c in self.clusters], outfile,  indent=4, sort_keys=True)
