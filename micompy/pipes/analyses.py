@@ -65,11 +65,8 @@ def concat_core_tree(clusters, path, min_clust_size = 10, min_coreness = 0, min_
 
     model = "PROTGAMMALG"
     seed = 42 
-    sh.raxmlHPC_PTHREADS_AVX("-w", rax_path, "-T", threads-2, "-m", model, "-p", seed, "-#", 20, "-s", alignment, "-n", "T13") 
-    print "boostrap dat tree"
-    sh.raxmlHPC_PTHREADS_AVX("-w", rax_path, "-T", threads-2, "-m", model, "-p", seed, "-b", seed, "-#", 100, "-s", alignment, "-n", "T14")
-    print "combine"
-    sh.raxmlHPC_AVX("-m", "GTRCAT", "-w", rax_path, "-p", seed, "-f", "b", "-t", rax_path + "/RAxML_bestTree.T13", "-z",rax_path + "/RAxML_bootstrap.T14", "-n", "T15", "-o", rax_path)
+
+    sh.raxmlHPC_AVX('-m', "PROTGAMMALGF", "-T", threads-2 , '-p', sede, '-s', alignment, '-n', 'tree', '-w', rax_path, '-f', 'a', '-x', 1, '-N', 'autoMR')
 
     
     taxo = {g.name : g.name +( "|" + g.metadata['taxonomy_external'] if g.metadata['taxonomy_external'] == g.metadata['taxonomy_external'] else "" ) + ("|" + g.metadata['phylum'] if g.metadata['phylum'] == g.metadata['phylum'] else "" )  for g in all_genomes if g.is_good()}

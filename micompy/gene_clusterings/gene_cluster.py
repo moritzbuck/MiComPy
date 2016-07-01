@@ -6,7 +6,6 @@ from numpy import nan_to_num, prod
 
 
 class GeneCluster(object):
-
     def __repr__(self): return '<%s object %s, annotated as  %s with %i genes from %i genomes>' % (self.__class__.__name__, self.name, self.annotation, len(self.genes), len(self.genomes))
 
     def __init__(self, clustering , genes, name = None, annotation = None ):
