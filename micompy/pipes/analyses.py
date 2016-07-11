@@ -81,17 +81,17 @@ def concat_sc_pfam_tree(pfam_clusters, path, min_clust_size = 10, min_new_comple
     sc_pfam_clusts = [c for c in pfam_clusters if c.name in sc_pfams]
 
     for c in sc_pfam_clusts :
-        bads = {g : l for g,l in c.genome_2_gene_map.iteritems() if len(l) >1]}
+        bads = {g : l for g,l in c.genome_2_gene_map.iteritems() if len(l) >1}
         c.black_list = []
         for g in bads.iterkeys():
             es = [v for v in zip(pfams.hmm_dic[c.name]['cdss'],pfams.hmm_dic[t.name]['es']) if v[0].split("|")[0]==g]
             es.sort(key=lambda x : x[1])
             c.black_list += [e[0] for e in es][1:]
             
-    temp = sum([c.genomes for c in core ],[])
+    temp = sum([list(c.genomes) for c in sc_pfam_clusts ],[])
     gInCore = set(temp)
-    main_trunk = [g for g in gInCore if float(temp.count(g))/len(core) > min_new_completness]
-    use_core = [ c for c in core if len([g for g in main_trunk if g in c.genomes]) > len(main_trunk)/2]
+    main_trunk = [g for g in gInCore if float(temp.count(g))/len(sc_pfam_clusts) > min_new_completness]
+    use_core = [ c for c in sc_pfam_clusts if len([g for g in main_trunk if g in c.genomes]) > len(main_trunk)/2]
  
     align_path = pjoin(path, "alignments")
     
