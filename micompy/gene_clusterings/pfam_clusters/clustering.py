@@ -5,7 +5,10 @@ import shutil
 from micompy.common.utils.params import cpus, pfama_loc, temp_loc, pjoin
 from tqdm import tqdm 
 import json
+import os
 
+with open(os.path.dirname(__file__) + "sc_pfams.txt") as handle:
+        sc_pfams = set([l[:-1] for l in handle.readlines()])
 
 class PfamClustering(Clustering):
 	def __init__(self,proteoms, out_path, name, gff = None, seq_type="proteins", checkm = None, name_map = None):

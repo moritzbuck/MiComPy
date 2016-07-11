@@ -49,8 +49,8 @@ proteoms = [g.proteom for g in all_genomes if g.is_good()]
 name_map = {g.name  : g.conv_name() for g in all_genomes if g.name  !=  g.conv_name() }
 rev_name_map = {v:k for k,v in name_map.iteritems()}
 mcl = orthoMCL(pjoin(analyses_root, "orthoMCL/"), short_proteoms, "big_clustering")
-clusters = Clustering(proteoms, pjoin(analyses_root, "clustering/"),"candidate_divs", mcl, checkm = pjoin(analyses_root,"checkm"),  name_map = name_map)
-
+clusters = Clustering(proteoms, pjoin(analyses_root, "clustering/"),"candidate_divs", mcl, checkm = pjoin(analyses_root,"checkm"),  name_map = name_map, rev_name_map = rev_name_map)
+taxo_map  = {g.name : g.name + ("--" + str(g.metadata['taxonomy_external']) if g.metadata['taxonomy_external'] == g.metadata['taxonomy_external'] else "") for g in all_genomes}
 g2clusters = {}
 
 for g in all_genomes:
@@ -61,6 +61,16 @@ for c in clusters.single_copy_clusters():
     if len(c.genomes) > 10:
         for cc in c.genome_2_gene_map:
             g2clusters[name_map[cc]] += [ c.name ]
+
+for c in tqdm(clusters.single_copy_clusters()):
+    if len(c.genomes) > 8:
+        c.coreness=c.compute_coreness()
+
+pfams = PfamClustering(proteoms, pjoin(analyses_root, "pfam_clustering/"), "pfam_cdivs", checkm=pjoin(analyses_root,"checkm"))
+
+pfams.hmm_dict = pfams.parse_hmmer_results("/home/moritz/people/moritz/CDs/hmmer_good_prots.raw")
+
+sc_pfam_clusts = [c for c in pfams if c.name in sc_pfams]
 
         
 #if __name__ == '__main__':
@@ -89,11 +99,14 @@ for c in clusters.single_copy_clusters():
 ##    mcl.full_pipe()
 ##    mcl.stop_server()
 ##    clusters.post_process()
-#    all_trees = []
+    all_trees = []
+    ccs = []
 #    threash = len([g for g in all_genomes if g.is_good()])*0.05
 #    short_names = {g.name : g.metadata['short_name'] for g in all_genomes if g.is_good()}
-#    for c in tqdm(clusters.single_copy_clusters()):
-#        if len(c.genomes) > threash :
+    for c in tqdm(clusters.single_copy_clusters()):
+        if len(c.genomes) > 3 and c.coreness < 0 :
+            ccs += [c.name]
+#            all_trees += [pjoin(clusters.path, "clusters/", c.name, "tree",  c.name + ".tree")] 
 ##            if not os.path.exists(pjoin(clusters.path, "clusters/", c.name, "align")):
 ##                os.makedirs(pjoin(clusters.path, "clusters/", c.name, "align"))
 ##            if not os.path.exists(pjoin(clusters.path, "clusters/", c.name, "tree")):
@@ -102,7 +115,7 @@ for c in clusters.single_copy_clusters():
 ##            if os.path.exists(pjoin(clusters.path, "clusters/", c.name, "align", c.name + "_aligned_blocked.faa")):
 ##                c.tree_construction(pjoin(clusters.path, "clusters/", c.name, "align", c.name + "_aligned_blocked.faa"), pjoin(clusters.path, "clusters/", c.name, "tree", c.name + ".tree"))
 ##                renaming_tree(pjoin(clusters.path, "clusters/", c.name, "tree", c.name + ".tree"), pjoin(clusters.path, "clusters/", c.name, "tree", "short_" + c.name + ".tree"), short_names)
-#                all_trees += [pjoin(clusters.path, "clusters/", c.name, "tree",  c.name + ".tree")] 
+
 #    sh.cat(*all_trees, _out = pjoin(clusters.path , "tree_set.tree"))
 #    concat_core_tree(clusters, pjoin(analyses_root, "tree_trunk"))
 #    
