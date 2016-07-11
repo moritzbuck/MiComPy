@@ -7,6 +7,7 @@ from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
 from subprocess import call
+from micompy.gene_clusterings.pfam_clustering.clustering import sc_pfams
 
 def annotation(genomes, cpus = 1, clean = False):
     for g in genomes:
@@ -63,6 +64,70 @@ def concat_core_tree(clusters, path, min_clust_size = 10, min_coreness = 0, min_
             sh.rm(rax_path)
     os.makedirs(rax_path)
 
+    model = "PROTGAMMALGF"
+    seed = 42 
+
+    sh.raxmlHPC_AVX('-m', "PROTGAMMALGF", "-T", threads-2 , '-p', sede, '-s', alignment, '-n', 'tree', '-w', rax_path, '-f', 'a', '-x', 1, '-N', 'autoMR')
+
+    
+    taxo = {g.name : g.name +( "|" + g.metadata['taxonomy_external'] if g.metadata['taxonomy_external'] == g.metadata['taxonomy_external'] else "" ) + ("|" + g.metadata['phylum'] if g.metadata['phylum'] == g.metadata['phylum'] else "" )  for g in all_genomes if g.is_good()}
+    renaming_tree(pjoin(path, "full_alignment.tree"),pjoin(path, "full_alignment.taxo.tree"), taxo)
+
+def concat_sc_pfam_tree(pfam_clusters, path, min_clust_size = 10, min_new_completness = 0.3 ):
+    
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+    sc_pfam_clusts = [c for c in pfam_clusters if c.name in sc_pfams]
+
+    for c in sc_pfam_clusts :
+        bads = {g : l for g,l in c.genome_2_gene_map.iteritems() if len(l) >1]}
+        c.black_list = []
+        for g in bads.iterkeys():
+            es = [v for v in zip(pfams.hmm_dic[c.name]['cdss'],pfams.hmm_dic[t.name]['es']) if v[0].split("|")[0]==g]
+            es.sort(key=lambda x : x[1])
+            c.black_list += [e[0] for e in es][1:]
+            
+    temp = sum([c.genomes for c in core ],[])
+    gInCore = set(temp)
+    main_trunk = [g for g in gInCore if float(temp.count(g))/len(core) > min_new_completness]
+    use_core = [ c for c in core if len([g for g in main_trunk if g in c.genomes]) > len(main_trunk)/2]
+ 
+    align_path = pjoin(path, "alignments")
+    
+    if not os.path.exists(align_path):
+        os.makedirs(align_path)
+    
+    for c in tqdm(use_core):
+        c.align(pjoin(align_path, c.name + ".faa"), block=True, subset = main_trunk)
+
+    concat_seqs = {}
+    for g in main_trunk:
+        concat_seqs[g] = ""
+
+    for f in [pjoin(align_path, t) for t in os.listdir(align_path) if "blocked.faa" in t]:
+        with open(f) as handle:
+            entries = {s.id : str(s.seq) for s in SeqIO.parse(handle,"fasta")}
+        length = len(entries.values()[0])
+        assert all([len(s) == length for s in entries.values()])
+
+        for g in concat_seqs:
+            if entries.has_key(g):
+                concat_seqs[g] += entries[g]
+            else:
+                concat_seqs[g] += "X"*length
+    alignment = pjoin(path, "full_alignment.faa")
+    with open(alignment,"w") as handle:
+        SeqIO.write([SeqRecord(Seq(s), id=g) for g,s in concat_seqs.iteritems()], handle, "fasta")
+            
+    #    sh.FastTree("-out", pjoin(path, "full_alignment.tree"), pjoin(path, "full_alignment.faa") )
+
+    print "build a tree"
+    rax_path = pjoin(path, "RAxML/")
+    if os.path.exists(rax_path ):
+            sh.rm(rax_path)
+    os.makedirs(rax_path)
+
     model = "PROTGAMMALG"
     seed = 42 
 
@@ -71,7 +136,10 @@ def concat_core_tree(clusters, path, min_clust_size = 10, min_coreness = 0, min_
     
     taxo = {g.name : g.name +( "|" + g.metadata['taxonomy_external'] if g.metadata['taxonomy_external'] == g.metadata['taxonomy_external'] else "" ) + ("|" + g.metadata['phylum'] if g.metadata['phylum'] == g.metadata['phylum'] else "" )  for g in all_genomes if g.is_good()}
     renaming_tree(pjoin(path, "full_alignment.tree"),pjoin(path, "full_alignment.taxo.tree"), taxo)
-        
+
+
+
+    
 def cluster_genomes(genomes,output, cutoff=0.95):
     for g in genomes:
         if not g.size:

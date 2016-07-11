@@ -12,6 +12,8 @@ class GeneCluster(object):
 
         self.clustering = clustering
         self.coreness = None
+        self.black_list = None
+
         if type(genes) == dict :
 #            self.from_dict(genes)
             print "Don't forget to repair"
@@ -61,7 +63,7 @@ class GeneCluster(object):
             if g in subset:
                 genome = [f for f in self.clustering.genomes if f.split("/")[-1].split(".")[0] == g ][0]
                 with open(genome, "r") as handle:
-                    t_seqs = [s for s in SeqIO.parse(handle, "fasta") if s.id in self.genes]
+                    t_seqs = [s for s in SeqIO.parse(handle, "fasta") if s.id in self.genes and not s.id in self.black_list ]
                     if genome_name:
                         for s in t_seqs:
                             s.id = g
