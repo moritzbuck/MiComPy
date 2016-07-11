@@ -1,3 +1,4 @@
+from micompy.gene_clusterings.gene_cluster import GeneCluster
 
 import os
 import json
@@ -21,7 +22,7 @@ class Clustering(object):
     def __getitem__(self, key): return self.clusters[key]
 
         
-    def __init__(self,proteoms,  out_path, name, gff = None, seq_type="proteins", checkm = None, name_map = None):
+    def __init__(self,proteoms,  out_path, name, gff = None, seq_type="proteins", checkm = None, name_map = None, rev_name_map = None):
 
         self.genomes = proteoms
         self.seq_type = seq_type
@@ -38,7 +39,7 @@ class Clustering(object):
         self.base = self.path + self.name
         self.scg_tree =  self.base +"_nodes_labeled.tree"
         self.name_map = name_map
-        
+        self.rev_name_map = rev_name_map
         self.processed_clusters = self.base + ".json"
         self.align_path = self.base + "_align/"
         self.scc_align_path = self.base + "_scc_align/"

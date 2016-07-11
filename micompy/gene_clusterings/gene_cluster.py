@@ -8,17 +8,18 @@ from numpy import nan_to_num, prod
 class GeneCluster(object):
     def __repr__(self): return '<%s object %s, annotated as  %s with %i genes from %i genomes>' % (self.__class__.__name__, self.name, self.annotation, len(self.genes), len(self.genomes))
 
-    def __init__(self, clustering , genes, name = None ):
+    def __init__(self, clustering , genes, name = None, annotation = None ):
 
         self.clustering = clustering
         self.coreness = None
         self.black_list = None
 
         if type(genes) == dict :
-            self.from_dict(genes)
+#            self.from_dict(genes)
+            print "Don't forget to repair"
         else:
             self.name = name
-            self.from_list(genes)
+            self.from_list(genes, annotation)
              
     def to_dict(self):
         return {u'name': self.name, u'annot_fraction': self.annot_fraction, u'annotation': self.annotation,  u'genes': self.genome_2_gene_map,  u'mapping': self.mapping, "coreness" : self.coreness}
@@ -34,19 +35,24 @@ class GeneCluster(object):
         self.mapping = imp['mapping']
         self.coreness = imp['coreness'] if imp.has_key('coreness') else None
         
-    def from_list(self, genes):
+    def from_list(self, genes, annotation):
         self.genomes = list(set([g.split("|")[0] for g in genes]))
         self.genes = [g.split("|")[1] for g in genes]
         self.genome_2_gene_map = {go : [ge.split("|")[1] for ge in genes if go == ge.split("|")[0]] for go in self.genomes}
        
-        sub_dict = {g : self.clustering.id2name_map[g] for g in self.genes}
-        name_counts = Counter(sub_dict.values())
-        total = sum([name_counts[z] for z in name_counts])
-        annot_frac = float(name_counts.most_common()[0][1])/float(total)
+        if annotation:
+            self.annotation = annotation
+            self.annot_fraction = None
+            self.mapping = None
 
-        self.annotation = name_counts.most_common(1)[0][0]
-        self.annot_fraction = annot_frac
-        self.mapping = sub_dict
+        else :
+            sub_dict = {g : self.clustering.id2name_map[g] for g in self.genes}
+            name_counts = Counter(sub_dict.values())
+            total = sum([name_counts[z] for z in name_counts])
+            annot_frac = float(name_counts.most_common()[0][1])/float(total)
+            self.annotation = name_counts.most_common(1)[0][0]
+            self.annot_fraction = annot_frac
+            self.mapping = sub_dict
 #        self.coreness = self.compute_coreness()
 
     def to_sequences(self, short=False, genome_name = False, subset = None):
@@ -103,13 +109,13 @@ class GeneCluster(object):
 
         
     def core_probability(self):
-        present = prod([self.clustering.completnesses[g] for g in self.genomes])
+        present = prod([self.clustering.completnesses[self.clustering.rev_name_map[g]] for g in self.genomes])
         abscent = prod([1-v for k,v in self.clustering.completnesses.iteritems() if k not in self.genomes and k in self.clustering.genome2len.keys()])
         return present*abscent
 
     def non_core_probability(self):
-        prob_of_random_pres = lambda g: 1.0 - power(float(len(self.clustering)-1)/len(self.clustering) , self.clustering.genome2len[g])
-        prob_of_random_absc = lambda g: power(float(len(self.clustering)-1)/len(self.clustering) , self.clustering.genome2len[g])
+        prob_of_random_pres = lambda g: 1.0 - power(float(len(self.clustering)-1)/len(self.clustering) , self.clustering.genome2len[self.clustering.rev_name_map[g]])
+        prob_of_random_absc = lambda g: power(float(len(self.clustering)-1)/len(self.clustering) , self.clustering.genome2len[self.clustering.rev_name_map[g]])
         present = prod([prob_of_random_pres(g) for g in self.genomes])
         abscent = prod([prob_of_random_absc(k) for k in self.clustering.genome2len.keys() if k not in self.genomes])
         return present*abscent
