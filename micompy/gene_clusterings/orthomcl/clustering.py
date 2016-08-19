@@ -210,7 +210,7 @@ class Clustering(object):
     def __getitem__(self, key): return self.clusters[key]
 
         
-    def __init__(self,proteoms,  out_path, name, mcl, gff = None, seq_type="proteins", checkm = None, name_map = None):
+    def __init__(self,proteoms,  out_path, name, mcl, gff = None, seq_type="proteins", checkm = None, name_map = None, rev_name_map = None):
 
         self.genomes = proteoms
         self.seq_type = seq_type

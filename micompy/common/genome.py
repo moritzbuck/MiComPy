@@ -51,6 +51,13 @@ class Genome(object):
             self.size = sum([len(s) for s in SeqIO.parse(handle, "fasta")])
         self.write_data()
 
+    def get_meta(self, field, default = None):
+        if self.metadata.has_key(field):
+            return self.metadata[field] if self.metadata[field] == self.metadata[field] else default
+        else :
+            return -1
+
+        
     def write_data(self):
         temp = {}
         temp['metadata'] = self.metadata

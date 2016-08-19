@@ -7,9 +7,13 @@ from tqdm import tqdm
 import json
 import os
 
-with open(os.path.dirname(__file__) + "sc_pfams.txt") as handle:
+with open(os.path.dirname(__file__) + "/sc_pfams.txt") as handle:
         sc_pfams = set([l[:-1] for l in handle.readlines()])
 
+with open(os.path.dirname(__file__) + "/pfam_equivalents.txt") as handle:
+        pfam_equivs = [l[:-1].split(";") for l in handle.readlines()]
+
+        
 class PfamClustering(Clustering):
 	def __init__(self,proteoms, out_path, name, gff = None, seq_type="proteins", checkm = None, name_map = None, rev_name_map = None):
 		Clustering.__init__(self,proteoms, out_path, name, gff = gff, seq_type="proteins", checkm = checkm, name_map = name_map, rev_name_map = rev_name_map)

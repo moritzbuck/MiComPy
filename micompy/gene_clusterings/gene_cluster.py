@@ -2,7 +2,10 @@ from collections import Counter
 from numpy import power
 from numpy import log
 from numpy import nan_to_num, prod
-
+from Bio import SeqIO
+import sh
+import os
+import shutil
 
 
 class GeneCluster(object):
@@ -60,10 +63,10 @@ class GeneCluster(object):
             subset = self.genomes
         seqs = []
         for g in self.genomes:
-            if g in subset:
-                genome = [f for f in self.clustering.genomes if f.split("/")[-1].split(".")[0] == g ][0]
+            if self.clustering.rev_name_map[g] in subset:
+                genome = [f for f in self.clustering.genomes if f.split("/")[-1].split(".")[0] == self.clustering.rev_name_map[g] ][0]
                 with open(genome, "r") as handle:
-                    t_seqs = [s for s in SeqIO.parse(handle, "fasta") if s.id in self.genes and not s.id in self.black_list ]
+                    t_seqs = [s for s in SeqIO.parse(handle, "fasta") if s.id.replace(self.clustering.rev_name_map[g],g) in self.genes and not s.id in self.black_list ]
                     if genome_name:
                         for s in t_seqs:
                             s.id = g
@@ -94,7 +97,7 @@ class GeneCluster(object):
             if os.path.exists("temp_aligned.faa-gb.htm"):
                 shutil.move("temp_aligned.faa-gb", output_file)
                 os.remove("temp_aligned.faa-gb.htm")
-                sh.seqret("-sequence", "temp_aligned.faa", "-outseq", "nexus:" + ".".join(output_file.split(".")[:-1]) + ".nex")
+#                sh.seqret("-sequence", "temp_aligned.faa", "-outseq", "nexus:" + ".".join(output_file.split(".")[:-1]) + ".nex")
                 os.remove("temp_aligned.faa")
                 return 1
             else :
