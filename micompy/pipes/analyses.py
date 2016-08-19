@@ -11,6 +11,8 @@ from micompy.gene_clusterings.pfam_clusters.clustering import sc_pfams
 from micompy.gene_clusterings.pfam_clusters.clustering import pfam_equivs
 from tqdm import tqdm
 import sh
+from random import sample
+
 
 def annotation(genomes, cpus = 1, clean = False):
     for g in genomes:
@@ -76,6 +78,59 @@ def concat_core_tree(clusters, path, min_clust_size = 10, min_coreness = 0, min_
     taxo = {g.name : g.name +( "|" + g.metadata['taxonomy_external'] if g.metadata['taxonomy_external'] == g.metadata['taxonomy_external'] else "" ) + ("|" + g.metadata['phylum'] if g.metadata['phylum'] == g.metadata['phylum'] else "" )  for g in all_genomes if g.is_good()}
     renaming_tree(pjoin(path, "full_alignment.tree"),pjoin(path, "full_alignment.taxo.tree"), taxo)
 
+def concat_oto_tree(clusts, path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+    for c in clusts :
+        for cc in c.genome_2_gene_map.iteritems():
+            c.black_list = sample(cc, len(cc)-1)
+
+    temp = sum([list(c.genomes) for c in clusts ],[])
+    gInCore = set(temp)
+    main_trunk = [rev_name_map[g] for g in gInCore ]
+ 
+    align_path = pjoin(path, "alignments")
+
+    if not os.path.exists(align_path):
+        os.makedirs(align_path)
+    
+    for c in tqdm(use_core):
+        c.align(pjoin(align_path, c.name + ".faa"), block=True, subset = main_trunk)
+
+    concat_seqs = {}
+    for g in main_trunk:
+        concat_seqs[rev_name_map[g]] = ""
+
+    for f in [pjoin(align_path, t) for t in os.listdir(align_path) if ".faa" in t]:
+        with open(f) as handle:
+            entries = {s.id : str(s.seq) for s in SeqIO.parse(handle,"fasta")}
+        length = len(entries.values()[0])
+        assert all([len(s) == length for s in entries.values()])
+
+        for g in concat_seqs:
+            if entries.has_key(rev_name_map[g]):
+                concat_seqs[g] += entries[rev_name_map[g]]
+            else:
+                concat_seqs[g] += "X"*length
+    alignment = pjoin(path, "full_alignment.faa")
+
+    concat_seqs = {k : v for k,v in concat_seqs.iteritems() if v.count("-") + v.count("X") != len(v)}
+    with open(alignment,"w") as handle:
+        SeqIO.write([SeqRecord(Seq(s), id=g) for g,s in concat_seqs.iteritems()], handle, "fasta")
+
+    sh.FastTree("-out", pjoin(path, "full_alignment.tree"), pjoin(path, "full_alignment.faa") )
+    print "build a tree"
+    rax_path = pjoin(path, "RAxML/")
+    if os.path.exists(rax_path ):
+            sh.rm(rax_path)
+    os.makedirs(rax_path)
+
+    model = "PROTGAMMALG"
+    seed = 42 
+
+    
+    
 def concat_sc_pfam_tree(pfam_clusters, path, min_new_completness = 0.3 ):
     
     if not os.path.exists(path):
@@ -102,7 +157,7 @@ def concat_sc_pfam_tree(pfam_clusters, path, min_new_completness = 0.3 ):
             
     temp = sum([list(c.genomes) for c in sc_pfam_clusts ],[])
     gInCore = set(temp)
-    main_trunk = [pfam_clusters.rev_name_map[g] for g in gInCore if float(temp.count(g))/len(sc_pfam_clusts) > min_new_completness]
+    main_trunk = [rev_name_map[g] for g in gInCore if float(temp.count(g))/len(sc_pfam_clusts) > min_new_completness]
     use_core = [ c for c in sc_pfam_clusts if len([g for g in main_trunk if g in c.genomes]) > len(main_trunk)/2]
  
     align_path = pjoin(path, "alignments")
@@ -115,7 +170,7 @@ def concat_sc_pfam_tree(pfam_clusters, path, min_new_completness = 0.3 ):
 
     concat_seqs = {}
     for g in main_trunk:
-        concat_seqs[pfam_clusters.rev_name_map[g]] = ""
+        concat_seqs[rev_name_map[g]] = ""
 
     for f in [pjoin(align_path, t) for t in os.listdir(align_path) if ".faa" in t]:
         with open(f) as handle:
@@ -124,8 +179,8 @@ def concat_sc_pfam_tree(pfam_clusters, path, min_new_completness = 0.3 ):
         assert all([len(s) == length for s in entries.values()])
 
         for g in concat_seqs:
-            if entries.has_key(pfam_clusters.rev_name_map[g]):
-                concat_seqs[g] += entries[pfam_clusters.rev_name_map[g]]
+            if entries.has_key(rev_name_map[g]):
+                concat_seqs[g] += entries[rev_name_map[g]]
             else:
                 concat_seqs[g] += "X"*length
     alignment = pjoin(path, "full_alignment.faa")
@@ -134,7 +189,7 @@ def concat_sc_pfam_tree(pfam_clusters, path, min_new_completness = 0.3 ):
     with open(alignment,"w") as handle:
         SeqIO.write([SeqRecord(Seq(s), id=g) for g,s in concat_seqs.iteritems()], handle, "fasta")
             
-    #    sh.FastTree("-out", pjoin(path, "full_alignment.tree"), pjoin(path, "full_alignment.faa") )
+    sh.FastTree("-out", pjoin(path, "full_alignment.tree"), pjoin(path, "full_alignment.faa") )
 
     print "build a tree"
     rax_path = pjoin(path, "RAxML/")
