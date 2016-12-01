@@ -125,7 +125,8 @@ class GeneCluster(object):
         self.annotation = name_counts.most_common(1)[0][0]
         self.annot_fraction = annot_frac
         self.mapping = sub_dict
-        self.coreness = self.compute_coreness()
+        self.coreness = None
+#        self.coreness = self.compute_coreness()
 
     def to_sequences(self, short=False, genome_name = False, subset = None):
         if not subset:
@@ -210,9 +211,9 @@ class Clustering(object):
     def __getitem__(self, key): return self.clusters[key]
 
         
-    def __init__(self,proteoms,  out_path, name, mcl, gff = None, seq_type="proteins", checkm = None, name_map = None, rev_name_map = None):
+    def __init__(self,genomes,  out_path, name, mcl, gff = None, seq_type="proteins", checkm = None, name_map = None, rev_name_map = None):
 
-        self.genomes = proteoms
+        self.genomes = genomes
         self.seq_type = seq_type
         self.path = out_path
         self.oMCL_path = mcl.out_dir
@@ -243,15 +244,25 @@ class Clustering(object):
             with open(gff,"r") as handle:
                 temp = [ {v.split("=")[0] : v.split("=")[1] for v in l.split("\t")[-1].split(";")} for l in handle.readlines() ]
                 self.id2name_map = {cds['locus_tag'] : cds['product'] for cds in temp if cds.has_key('product')}
+            self.genome2len = {}
+            self.gene2genome = {}
+            for g in self.genomes:
+                file = g.proteom
+                with open(file) as handle:
+                    temp = {s.id : " ".join(s.description.split()[1:]) for s in SeqIO.parse(handle,"fasta")}
+                    self.genome2len[g.name] = len(temp.keys())
+                    self.gene2genome.update({gene : ".".join(file.split(".")[:-1]).split("/")[-1] for gene in temp.keys()})
+
         else :
             self.id2name_map = {}
             self.gene2genome = {}
             self.genome2len = {}
             for g in self.genomes:
                 with open(g) as handle:
+                    file = g.proteom
                     temp = {s.id : " ".join(s.description.split()[1:]) for s in SeqIO.parse(handle,"fasta")}
-                    self.genome2len[g.split("/")[-1].split(".")[0]] = len(temp.keys())
-                    self.gene2genome.update({gene : ".".join(g.split(".")[:-1]).split("/")[-1] for gene in temp.keys()})
+                    self.genome2len[g.name] = len(temp.keys())
+                    self.gene2genome.update({gene : ".".join(file.split(".")[:-1]).split("/")[-1] for gene in temp.keys()})
                     self.id2name_map.update(temp)
 
                 

@@ -9,10 +9,10 @@ class orthoMCL(object):
     db_cfg = "/home/moritz/repos/Pyscratches/20150610_orthomcl_tools/orthmcl_tools/orthomcl.config.template"
     mysql_line = "mysql --defaults-file=~/sandboxes/msb_5_1_73/mysql.cnf -u orthomcl --protocol=TCP -P 5173"
 
-    def __init__(self, out_dir, proteoms, name = "MCL"):
+    def __init__(self, out_dir, genomes, name = "MCL"):
         self.out_dir = out_dir
-        # list of prokka faa file
-        self.proteoms = proteoms
+        # genome objects
+        self.genomes = genomes
         self.name = name
         self.out_mcl = out_dir+ "final_clusters.tsv"
         if not os.path.exists(self.out_dir):
@@ -38,13 +38,13 @@ class orthoMCL(object):
 
 
     def post_blast(self):
-        self.start_server()
+#        self.start_server()
 #        self.empty_all_tables()
-        self.install_schemes()
+#        self.install_schemes()
         self.load_into_db()
         self.make_pairs()
         self.dump_pairs()
-        self.stop_server()
+#        self.stop_server()
         self.run_mcl()
         self.parse_mcl()
         self.stop_server()
@@ -68,21 +68,22 @@ class orthoMCL(object):
         print "making compliant fastaas"
         if not os.path.exists(self.out_dir + "temp"):
             os.makedirs(self.out_dir + "temp")
-        for f in tqdm(self.proteoms):
-            script = " ".join([self.orthoMCL_path + "orthomclAdjustFasta", f.split("/")[-1].split(".")[0], f, str(1)])
+        for g in tqdm(self.genomes):
+            file = g.short_proteom if g.short_proteom else g.proteom
+            script = " ".join([self.orthoMCL_path + "orthomclAdjustFasta", file.split("/")[-1].split(".")[0], file, str(1)])
             os.system(script)
-            shutils.move(f.split("/")[-1].split(".")[0] + ".fasta",self.out_dir + "temp/" )
+            shutil.move(file.split("/")[-1].split(".")[0] + ".fasta",self.out_dir + "temp/" )
 
     def make_good_fasta(self, min_len = 10, max_stop_freq=20):
         print "making filtered fastaa"
         script = " ".join([self.orthoMCL_path + "orthomclFilterFasta", self.out_dir + "temp/", str(min_len), str(max_stop_freq) ])
         os.system(script)
-        shutils.move("goodProteins.fasta", self.out_dir)
+        shutil.move("goodProteins.fasta", self.out_dir)
 
     def do_the_blast(self, processors = 16):
         print "running blast"
         os.system(" ".join([ "formatdb", "-i", self.out_dir + "goodProteins.fasta",  "-p", "T"]))
-        blastall_cmd = ["blastall", "-p", "blastp", "-F", "'m S'", "-v", 100000, "-b", 100000, "-z", 0,  "-e", 1e-5, "-m", 8, "-a", processors, "-d", self.out_dir + "goodProteins.fasta", "-i", self.out_dir + "goodProteins.fasta", ">", self.out_dir + "blast_all_v_all.tsv"]
+        blastall_cmd = ["/sw/apps/bioinfo/blast/2.2.26/bin/blastall", "-p", "blastp", "-F", "'m S'", "-v", 100000, "-b", 100000, "-z", 0,  "-e", 1e-5, "-m", 8, "-a", processors, "-d", self.out_dir + "goodProteins.fasta", "-i", self.out_dir + "goodProteins.fasta", ">", self.out_dir + "blast_all_v_all.tsv"]
         blastall_cmd = [str(c) for c in blastall_cmd]
         os.system(" ".join(blastall_cmd))
 
@@ -99,32 +100,35 @@ class orthoMCL(object):
 
     def empty_all_tables(self):
         print "clean db"
+        os.system('echo "TRUNCATE orthomcl.Ortholog;" | ' + self.mysql_line)
         os.system('echo "TRUNCATE orthomcl.SimilarSequences;" | ' + self.mysql_line)
         os.system('echo "TRUNCATE orthomcl.CoOrtholog;" | ' + self.mysql_line)
         os.system('echo "TRUNCATE orthomcl.InParalog;" | ' + self.mysql_line)
         os.system('echo "TRUNCATE orthomcl.InParalog2Way;" | ' + self.mysql_line)
-#        os.system('echo "TRUNCATE orthomcl.InterTaxonMatch;" | ' + self.mysql_line)
-        os.system('echo "TRUNCATE orthomcl.Ortholog;" | ' + self.mysql_line)
+        os.system('echo "TRUNCATE orthomcl.InterTaxonMatch;" | ' + self.mysql_line)
+        script = " ".join([self.orthoMCL_path + "orthomclPairs", self.db_cfg, self.out_dir + "pairs.log", "cleanup=all"])
+        os.system(script)
+
         
 
     def make_pairs(self):
         print "making pairs with db-magik"
-        script = " ".join([self.orthoMCL_path + "orthomclPairs", self.db_cfg, self.out_dir + "pairs.log", "cleanup=no"])
+        script = " ".join([self.orthoMCL_path + "orthomclPairs", self.db_cfg, self.out_dir + "pairs.log", "cleanup=yes"])
         os.system(script)
 
     def dump_pairs(self):
         if os.path.exists( "pairs/"):
-            shutils.rmtree("pairs/")
+            shutil.rmtree("-r","pairs/")
         if os.path.exists(self.out_dir + "pairs/"):
-            shutils.rmtree("-r", self.out_dir + "pairs/")
+            shutil.rmtree("-r", self.out_dir + "pairs/")
         print "dumping pairs"
-        os.system(" ".join(self.orthoMCL_path + "orthomclDumpPairsFiles"))
-        shutils.move("mclInput", self.out_dir)
-        shutils.move( "pairs", self.out_dir)
+        os.system(" ".join([self.orthoMCL_path + "orthomclDumpPairsFiles", self.db_cfg ]))
+        shutil.move("mclInput", self.out_dir)
+        shutil.move( "pairs", self.out_dir)
 
     def run_mcl(self):
         print "Running MCL"
-        os.system(" ".join([self.out_dir + "mclInput",  "--abc",  "-I", 1.5, "-o", self.out_dir + "mclOutput"]))
+        os.system(" ".join(["mcl", self.out_dir + "mclInput",  "--abc",  "-I", str(1.5), "-o", self.out_dir + "mclOutput"]))
 
     def parse_mcl(self):
         print "parsing MCL"
