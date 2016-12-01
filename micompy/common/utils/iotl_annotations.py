@@ -76,13 +76,13 @@ DATA
 float_to_rgb = lambda (r,g,b) : '#%02x%02x%02x' % (int(r*255), int(g*255), int(b*255))
 
 def SAG_data(genomes, file):
-    dat = {g.name : g.get_meta('type') for g in genomes}
+    dat = {g.get_meta('short_name') : g.get_meta('type') for g in genomes}
     dat = [ k + "," + str(1 if v == "SAG" else -1) + "\n" for k,v in dat.iteritems()]
     with open(file,"w") as handle:
         handle.writelines(template_pres_abs("SAGs",red,shape_star,"", "".join(dat)))
 
 def taxa_data(genomes, file):
-    dat = {g.name : g.get_meta('phylum', default = "") + g.get_meta('taxonomy_external', default = "") for g in genomes if g.is_good()}
+    dat = {g.get_meta('short_name') : g.get_meta('phylum', default = "") + g.get_meta('taxonomy_external', default = "") for g in genomes if g.is_good()}
     factors = list(set(dat.values()))
     cm = get_cmap('Set3')
     color_map = {k : float_to_rgb(cm(1.*i/len(factors))[0:3]) for i,k in enumerate(factors)}
@@ -93,7 +93,7 @@ def taxa_data(genomes, file):
 
 
 def env_data(genomes, file):
-    dat = {g.name : g.get_meta('environment', default = "") for g in genomes if g.is_good()}
+    dat = {g.metadata['short_name'] : g.get_meta('environment', default = "") for g in genomes if g.is_good()}
     factors = list(set(dat.values()))
     cm = get_cmap('Set1')
     color_map = {k : float_to_rgb(cm(1.*i/len(factors))[0:3]) for i,k in enumerate(factors) if k != "" and k != "unknown"}
@@ -105,3 +105,13 @@ def clust_data(name, clust_data, file, color="#ff0000"):
     dat = [ k + "," + str(float(v)+0.01) + "\n" for k,v in clust_data.iteritems()]
     with open(file,"w") as handle:
         handle.writelines(template_gradient(name,"".join(dat), color))
+
+
+def class_data(genomes, class_dict, file , name = "derep_clusters"):
+    factors = list(set(class_dict.values()))
+    cm = get_cmap('Set1')
+    color_map = {k : float_to_rgb(cm(1.*i/len(factors))[0:3]) for i,k in enumerate(factors) if k != "" and k != "unknown"}
+    dat = [ ",".join([k, color_map[v],v])  + "\n" for k,v in class_dict.iteritems() if v != "" and v != "unknown"]
+    with open(file,"w") as handle:
+        handle.writelines(template_strips("environment",color_map,"".join(dat)))
+

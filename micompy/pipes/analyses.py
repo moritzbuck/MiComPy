@@ -15,7 +15,7 @@ from random import sample
 
 
 def annotation(genomes, cpus = 1, clean = False):
-    for g in genomes:
+    for g in tqdm(genomes):
         if clean or not g.is_annotated():
             g.prokka(cpus = cpus)
 
@@ -88,19 +88,19 @@ def concat_oto_tree(clusts, path):
 
     temp = sum([list(c.genomes) for c in clusts ],[])
     gInCore = set(temp)
-    main_trunk = [rev_name_map[g] for g in gInCore ]
+    main_trunk = gInCore
  
     align_path = pjoin(path, "alignments")
 
     if not os.path.exists(align_path):
         os.makedirs(align_path)
     
-    for c in tqdm(use_core):
-        c.align(pjoin(align_path, c.name + ".faa"), block=True, subset = main_trunk)
+#    for c in tqdm(clusts):
+#        c.align(pjoin(align_path, c.name + ".faa"), block=True, subset = main_trunk)
 
     concat_seqs = {}
     for g in main_trunk:
-        concat_seqs[rev_name_map[g]] = ""
+        concat_seqs[g] = ""
 
     for f in [pjoin(align_path, t) for t in os.listdir(align_path) if ".faa" in t]:
         with open(f) as handle:
@@ -109,8 +109,8 @@ def concat_oto_tree(clusts, path):
         assert all([len(s) == length for s in entries.values()])
 
         for g in concat_seqs:
-            if entries.has_key(rev_name_map[g]):
-                concat_seqs[g] += entries[rev_name_map[g]]
+            if entries.has_key(g):
+                concat_seqs[g] += entries[g]
             else:
                 concat_seqs[g] += "X"*length
     alignment = pjoin(path, "full_alignment.faa")
@@ -217,7 +217,7 @@ def cluster_genomes(genomes,output, cutoff=0.95):
 
     left = set(genomes)
     clusters = {}
-    for g in genomes:
+    for g in tqdm(genomes):
         if g in left:
             #make blast db of g (larger genome)
             blast_db_files = [g.ref + ".nhr", g.ref + ".nin",  g.ref + ".nsq"]
@@ -225,8 +225,7 @@ def cluster_genomes(genomes,output, cutoff=0.95):
             with open("/dev/null") as null:
                 blastdb_return = call(blast_db_cmd, stdout=null)
             #find the similar genomes
-            sim = [bitch for bitch in left if NIC_similarity(bitch.ref,g.ref,blast_db = False, chunk_size = 250, length_threshold=0.8, identity_threshold=0.75
-                                                             ) > cutoff]
+            sim = [bitch for bitch in left if NIC_similarity(bitch.ref,g.ref,blast_db = False, chunk_size = 1000, length_threshold=0.8, identity_threshold=0.75) > cutoff]
             #remove them for the list of left genomes
             for s in sim:
                 left.remove(s)
@@ -269,13 +268,13 @@ def phylophlan(genomes, output, cpus = 1, phylophlan_folder = "/home/moritz/repo
     cwd = os.getcwd()
     os.chdir(phylophlan_folder)
     in_dir = pjoin(phylophlan_folder, "input", proj_name)
-#    os.makedirs(in_dir)
-#    for g in genomes:
-#        call(["cp", g.proteom, in_dir])
-#    for g in default_genomes:
-#        call(["cp", g, in_dir])
-#    for l in os.listdir(in_dir):
-#        os.system("sed -i 's/*//g' " + pjoin(in_dir,l))
+    os.makedirs(in_dir)
+    for g in genomes:
+        call(["cp", g.proteom, in_dir])
+    for g in default_genomes:
+        call(["cp", g, in_dir])
+    for l in os.listdir(in_dir):
+        os.system("sed -i 's/*//g' " + pjoin(in_dir,l))
     if full:
         call(["python", "phylophlan.py", "--nproc", str(cpus), "-i", "-t", proj_name])
     else :
@@ -292,3 +291,34 @@ def parse_checkm_results(genome, checkm_out):
     line = df.loc[genome.name].to_dict()
     genome.checkm_meta = line 
     genome.write_data()
+
+
+def mash_matrix(genomes, output_file):
+    for g in tqdm(genomes):
+        g.compute_mash()
+    mat = {g1: { g2: g1.mash_compare(g2)['counts'] for g2 in genomes} for g1 in tqdm(genomes)}
+    DataFrame.from_dict(mat).to_csv(output_file)
+    return mat
+
+def cluster_genomes_mash(genomes,simi_matrix, output, cutoff=3500):
+    for g in genomes:
+        if not g.size:
+            g.compute_size()
+    genomes.sort(key = lambda x : x.size, reverse=True)
+
+    left = set(genomes)
+    clusters = {}
+    for g in tqdm(genomes):
+        if g in left:
+            sim = [bitch for bitch in left if (simi_matrix[g.name][bitch.name] > cutoff and  bitch.metadata['type'] != "SAG") or bitch.name == g.name]
+            #remove them for the list of left genomes
+            for s in sim:
+                left.remove(s)
+#            print g.name+"\t"+":".join([ s.name for s in sim])
+            clusters[g.name] = sim
+            for k in sim:
+                k.cluster = g.name
+                k.write_data()
+            with open(output,"w") as handle:
+                json.dump(output, handle)
+    return clusters

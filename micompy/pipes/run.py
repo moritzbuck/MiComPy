@@ -46,14 +46,13 @@ for dir in os.listdir(data_root):
 
 all_genomes.sort(key=lambda x: x.size, reverse = True)
 all_clusters = [g for g in all_genomes if g.name == g.cluster]
-short_proteoms = [g.short_proteom if g.short_proteom else g.proteom for g in all_genomes if g.is_good()]
-proteoms = [g.proteom for g in all_genomes if g.is_good()]
+
 name_map = {g.name  : g.conv_name() for g in all_genomes if g.name  !=  g.conv_name() }
 rev_name_map = {v:k for k,v in name_map.iteritems()}
 name_map.update({g.conv_name : g.conv_name for g in all_genomes })
 rev_name_map.update({g.name : g.name for g in all_genomes })
 
-mcl = orthoMCL(pjoin(analyses_root, "orthoMCL/"), short_proteoms, "big_clustering")
+mcl = orthoMCL(pjoin(analyses_root, "orthoMCL/"), all_genomes, "big_clustering")
 clusters = Clustering(proteoms, pjoin(analyses_root, "clustering/"),"candidate_divs", mcl, checkm = pjoin(analyses_root,"checkm"),  name_map = name_map, rev_name_map = rev_name_map)
 taxo_map  = {g.name :  (str(g.metadata['taxonomy_external'] +  "--" ) if g.metadata['taxonomy_external'] == g.metadata['taxonomy_external'] else "") + (str(g.metadata['phylum'] + "--") if g.metadata['phylum'] == g.metadata['phylum'] else "") + g.name for g in all_genomes}
 g2clusters = {}

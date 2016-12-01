@@ -18,7 +18,7 @@ class GeneCluster(object):
         self.black_list = None
 
         if type(genes) == dict :
-#            self.from_dict(genes)
+            self.from_dict(genes)
             print "Don't forget to repair"
         else:
             self.name = name
@@ -60,17 +60,17 @@ class GeneCluster(object):
 
     def to_sequences(self, short=False, genome_name = False, subset = None):
         if not subset:
-            subset = self.genomes
+            subset = set(self.genomes)
         seqs = []
         for g in self.genomes:
-            if self.clustering.rev_name_map[g] in subset:
-                genome = [f for f in self.clustering.genomes if f.split("/")[-1].split(".")[0] == self.clustering.rev_name_map[g] ][0]
-                with open(genome, "r") as handle:
-                    t_seqs = [s for s in SeqIO.parse(handle, "fasta") if s.id.replace(self.clustering.rev_name_map[g],g) in self.genes and not s.id in self.black_list ]
+            if g in subset:
+                genome = [ gg  for gg in  self.clustering.genomes if gg.metadata['short_name'] == g][0]
+                with open(genome.proteom, "r") as handle:
+                    t_seqs = [s for s in SeqIO.parse(handle, "fasta") if s.id in self.genes and not s.id in self.black_list ]
                     if genome_name:
                         for s in t_seqs:
-                            s.id = g
-                            s.name = g
+                            s.id = genome.metadata['short_name']
+                            s.name = genome.metadata['short_name']
                     if short:
                         for s in t_seqs:
                             s.description = ""
