@@ -27,8 +27,10 @@ from micompy.gene_clusterings.pfam_clusters.clustering import PfamClustering
 from itertools import groupby
 from pylab import *
 from micompy.common.utils.iotl_annotations import *
+from micompy.common.utils.metacyc_db import pathways
 
-root = "/home/moritz/people/moritz/CDs/"
+
+root = "/home/moritzbuck/people/moritz/CDs/"
 data_root = pjoin(root, "data/")
 analyses_root = pjoin(root, "analyses/")
 google_data = pjoin(root, "OD1s and more - Sheet1.csv")
@@ -50,7 +52,7 @@ short_proteoms = [g.short_proteom if g.short_proteom else g.proteom for g in all
 proteoms = [g.proteom for g in all_genomes if g.is_good()]
 name_map = {g.name  : g.conv_name() for g in all_genomes if g.name  !=  g.conv_name() }
 rev_name_map = {v:k for k,v in name_map.iteritems()}
-name_map.update({g.conv_name : g.conv_name for g in all_genomes })
+name_map.update({g.conv_name() : g.conv_name() for g in all_genomes })
 rev_name_map.update({g.name : g.name for g in all_genomes })
 
 mcl = orthoMCL(pjoin(analyses_root, "orthoMCL/"), short_proteoms, "big_clustering")
@@ -89,14 +91,17 @@ for g in all_genomes:
     if g.is_good():
         g2clusters[g.conv_name()] = []
 
+goods = set([g for g in all_genomes if g.is_good()])
+        
 for c in clusters.single_copy_clusters():
     if len(c.genomes) > 10:
         for cc in c.genome_2_gene_map:
-            g2clusters[name_map[cc]] += [ c.name ]
+            if cc in goods:
+                g2clusters[name_map[cc]] += [ c.name ]
 
-for c in tqdm(clusters.single_copy_clusters()):
-    if len(c.genomes) > 8:
-        c.coreness=c.compute_coreness()
+#for c in tqdm(clusters.single_copy_clusters()):
+#    if len(c.genomes) > 8 :
+#        c.coreness=c.compute_coreness()
 
 #pfams = PfamClustering(proteoms, pjoin(analyses_root, "pfam_clustering/"), "pfam_cdivs", checkm=pjoin(analyses_root,"checkm"), rev_name_map = rev_name_map)
 #pfams.hmm_dict = pfams.parse_hmmer_results(pjoin(pfams.path,"hmmer_good_prots.raw"))
@@ -248,3 +253,35 @@ for k,l in big_clusts.iteritems():
 
 core = [[cc for cc in clusters if c == cc.name][0] for c in big_clusts['cluster_1'] ]
 core = [c for c in core if float(len(c.genes))/len(c.genomes) < 1.05  ]
+
+
+tt = [("_".join(k.split("_")[:-1]), v['eC_number'].split(".-")[0]) for k,v in big_gff_dict.iteritems() if v.has_key("eC_number")]
+for g in tqdm(all_genomes):
+    g.ecs = set([t[1] for t in tt if t[0] == g.name.replace("rifle_mag","rifle_sag")])
+
+
+
+for g in tqdm(all_genomes):
+    g.pathways = {p : float(len(p.get_ecs().intersection(g.ecs)))/len(p.get_ecs()) for p in pathways.values() if len(p.get_ecs()) > 0}
+
+with open("micompy/common/utils/pthwayOfinterest.txt") as handle:
+    pOi = [p[:-1] for p in handle.readlines()]
+
+pOi = [p for p in pOi if len(pathways[p].get_ecs())>0]
+
+float_to_rgb = lambda (r,g,b) : '#%02x%02x%02x' % (int(r*255), int(g*255), int(b*255))
+cm = get_cmap('Paired')
+color_map = {k : float_to_rgb(cm(1.*i/len(pOi))[0:3]) for i,k in enumerate(pOi)}
+denoised = {k: l[l > 0.2] for k,l in big_clusts_compos.iteritems()}
+    
+
+
+for p in pOi:
+   l = { g.name : g.pathways[pathways[p]] for g  in all_genomes if g.is_good()}
+   if max(l.values()) >= 0.5:
+       l['Candidatus_TM7_SBR2'] = 1.0
+       clust_data( pathways[p].name,l,pjoin(analyses_root, "tree_trunk","pfam_trunk",p + "_dat.txt"), color_map[p])
+
+
+l['Candidatus_TM7_SBR2'] = 1.0
+clust_data( "test",l,pjoin(analyses_root, "tree_trunk","pfam_trunk","test_dat.txt"), color_map.values()[3])

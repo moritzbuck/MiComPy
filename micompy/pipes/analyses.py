@@ -12,6 +12,7 @@ from micompy.gene_clusterings.pfam_clusters.clustering import pfam_equivs
 from tqdm import tqdm
 import sh
 from random import sample
+from subprocess import check_output
 
 
 def annotation(genomes, cpus = 1, clean = False):
@@ -292,3 +293,17 @@ def parse_checkm_results(genome, checkm_out):
     line = df.loc[genome.name].to_dict()
     genome.checkm_meta = line 
     genome.write_data()
+
+def mash_distances(genomes, kmer = 32, sketch_size = 100000):
+    mash_path = pjoin(analyses_root,"mash")
+    
+    if not os.path.exists(mash_path):
+        os.makedirs(mash_path)
+
+    with open("tmp","w") as handle:
+        handle.writelines([g.genome + "\n" for g in genomes])
+    call(["mash", "sketch", "-l", "-o", pjoin(mash_path, "all_sketches"), "-k", str(kmer), "-s", str(sketch_size), "tmp" ])
+    outp = check_output(["mash", "dist", "-t", pjoin(mash_path,"all_sketches.msh"), pjoin(mash_path, "all_sketches.msh")])
+    outp = outp.splitlines()
+    cols = [v.split("/")[-1].replace(".fna","") for v in outp[0].split("\t")]
+    mat = {l.split("\t")[0].split("/")[-1].replace(".fna","") : {vv[0] : float(vv[1]) for vv in zip(cols[1:],l.split("\t")[1:])} for l in outp[1:]}
