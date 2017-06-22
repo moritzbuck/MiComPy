@@ -7,8 +7,6 @@ from Bio import SeqIO
 import numpy as np
 import scipy.spatial.distance as distance
 import scipy.cluster.hierarchy as sch
-import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
 from tqdm  import tqdm
 from subprocess import call
 
@@ -18,9 +16,9 @@ def cut_up_fasta(infasta, outfasta = None, chunk_size=1000, full_chunks = True, 
     """
     returns non overlapping fasta chunks of length chunk_size
     if outfasta has a file name it writes it into the file
-    if full_chunks is True, returns only the chunks that are "chunk_size" length (e.g. removes the terminal chunks)     
+    if full_chunks is True, returns only the chunks that are "chunk_size" length (e.g. removes the terminal chunks)
     """
-    
+
     with open(infasta) as ff:
         seqs = []
         for record in SeqIO.parse(ff, "fasta"):
@@ -35,11 +33,11 @@ def cut_up_fasta(infasta, outfasta = None, chunk_size=1000, full_chunks = True, 
 
     for i,s in enumerate(seqs) :
         s.id = "seq_" + str(i)
-        
+
     if outfasta:
         with open(outfasta, "w") as handle:
             SeqIO.write(seqs,handle,"fasta")
-                
+
     return seqs
 
 def NIC_similarity(query_assembly, subject_assembly, chunk_size = 1000, identity_threshold = 95, length_threshold = 0.95, blast_db =True):
@@ -64,14 +62,14 @@ def find_NICs(query, subject, identity_threshold = 95, length_threshold = 0.95, 
 
     returns NICs (near identical contigs) of query in subject
     """
-    
+
     blast_outp = "temp.tsv"
     word_size = "28"
     blast_db_files = [subject + ".nhr", subject + ".nin",  subject + ".nsq"]
     blast_db_cmd = ["makeblastdb" ,"-in", subject, "-dbtype", "nucl", "-out", subject]
     blast_cmd = " ".join(["blastn" , "-out",  blast_outp,  "-word_size", word_size , "-db", subject, "-query",  query, "-perc_identity", str(identity_threshold), "-outfmt", "\"6 qseqid sseqid qlen slen pident length\"", "-num_threads", str(nb_proc)])
 
-    if blast_db:    
+    if blast_db:
         with open("/dev/null") as null:
             blastdb_return = call(blast_db_cmd, stdout=null)
     with open("/dev/null") as null:
@@ -84,7 +82,7 @@ def find_NICs(query, subject, identity_threshold = 95, length_threshold = 0.95, 
 
         blast_data = blast_data.loc[blast_data['pident'] > identity_threshold]
 
-    
+
     #remove hit on the same contig
         blast_data = blast_data.loc[blast_data['qseqid'] != blast_data['sseqid']]
 
@@ -101,7 +99,7 @@ def find_NICs(query, subject, identity_threshold = 95, length_threshold = 0.95, 
 
     #returns a dictionary with as key the seq-ids of the contigs that are highly similar over almost all there length to a part of an other content, and as value the contigs the map too
     return out
-    
+
 
 def find_selfsimilars(assembly, identity_threshold = 95, length_threshold = 0.95):
     """
@@ -110,7 +108,7 @@ def find_selfsimilars(assembly, identity_threshold = 95, length_threshold = 0.95
     returns a dictionary with as key the seq-ids of the contigs that are highly similar over almost all there length to a part of an other content, and as value the contigs the map too
     requires blast+
     """
-    
+
     return find_NICs(assembly,assembly,identity_threshold, length_threshold)
 
 def test_run_with_gage_assemblies():
@@ -123,7 +121,7 @@ def test_run_with_gage_assemblies():
     data_folder = "/home/murumbi/repos/AssemblyValidation/Assembly/"
     scaffs =[ "ABySS2" , "Allpaths-LG" , "MSR-CA" , "SOAPdenovo" , "ABySS" , "Bambus2" , "SGA" , "Velvet" ]
     asses = {k: data_folder + k + "/genome.ctg.fasta" for k in scaffs}
-    
+
     return  compare_assemblies(asses)
 
 
@@ -159,7 +157,7 @@ def compare_assemblies(assemblies, chunk_size = 2000, identity_threshold = 0.40)
         for f in blast_db_files:
             os.remove(f)
 
-            
+
     similars =  DataFrame.from_dict(similarities)
     return similars
 
@@ -173,11 +171,11 @@ def plot_heatmap(similars):
     col_pairwise_dists = distance.squareform(distance.pdist(similars.T))
     col_clusters = sch.linkage(col_pairwise_dists,method='complete')
     den_cols = sch.dendrogram(col_clusters,color_threshold=np.inf,no_plot=True)
-    
+
     # reorder dataframe
     similars = similars.ix[den_rows['leaves']]
     similars = similars[den_cols['leaves']]
-    
+
     fig = plt.figure()
     heatmapGS = gridspec.GridSpec(2,2,wspace=0.0,hspace=0.0,width_ratios=[0.25,1],height_ratios=[0.25,1])
     col_denAX = fig.add_subplot(heatmapGS[0,1])
@@ -188,7 +186,7 @@ def plot_heatmap(similars):
     row_denAX = fig.add_subplot(heatmapGS[1,0])
     row_denD = sch.dendrogram(row_clusters,color_threshold=np.inf,orientation='right')
 #    clean_axis(row_denAX)
-    
+
     heatmapAX = fig.add_subplot(heatmapGS[1,1])
     axi = heatmapAX.imshow(similars,interpolation='nearest',aspect='auto',origin='lower',cmap=plt.cm.RdBu)
 #    clean_axis(heatmapAX)

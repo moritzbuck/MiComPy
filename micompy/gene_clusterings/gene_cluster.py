@@ -15,7 +15,7 @@ class GeneCluster(object):
 
         self.clustering = clustering
         self.coreness = None
-        self.black_list = None
+        self.black_list = []
 
         if type(genes) == dict :
             self.from_dict(genes)
@@ -23,7 +23,7 @@ class GeneCluster(object):
         else:
             self.name = name
             self.from_list(genes, annotation)
-             
+
     def to_dict(self):
         return {u'name': self.name, u'annot_fraction': self.annot_fraction, u'annotation': self.annotation,  u'genes': self.genome_2_gene_map,  u'mapping': self.mapping, "coreness" : self.coreness}
 
@@ -32,17 +32,17 @@ class GeneCluster(object):
         self.genes = imp['mapping'].keys()
         self.genomes = imp['genes'].keys()
         self.genome_2_gene_map =  imp['genes']
-        
+
         self.annotation = imp['annotation']
         self.annot_fraction = imp['annot_fraction']
         self.mapping = imp['mapping']
         self.coreness = imp['coreness'] if imp.has_key('coreness') else None
-        
+
     def from_list(self, genes, annotation):
         self.genomes = list(set([g.split("|")[0] for g in genes]))
         self.genes = [g.split("|")[1] for g in genes]
         self.genome_2_gene_map = {go : [ge.split("|")[1] for ge in genes if go == ge.split("|")[0]] for go in self.genomes}
-       
+
         if annotation:
             self.annotation = annotation
             self.annot_fraction = None
@@ -74,7 +74,7 @@ class GeneCluster(object):
                     if short:
                         for s in t_seqs:
                             s.description = ""
-                    seqs += t_seqs
+                    seqs += t_seqs if t_seqs else []
         return seqs
 
     def calc_checksum(self, s):
@@ -103,14 +103,14 @@ class GeneCluster(object):
             else :
                 return 0
         else:
-            sh.seqret("-sequence", "temp_aligned.faa", "-outseq", "nexus:" + ".".join(output_file.split(".")[:-1]) + ".nex")  
+            sh.seqret("-sequence", "temp_aligned.faa", "-outseq", "nexus:" + ".".join(output_file.split(".")[:-1]) + ".nex")
             shutil.move("temp_aligned.faa", output_file)
             return 1
 
     def tree_construction(self,alignment, outputtree):
         sh.FastTree("-out", outputtree,  alignment)
 
-        
+
     def core_probability(self):
         present = prod([self.clustering.completnesses[self.clustering.rev_name_map[g]] for g in self.genomes])
         abscent = prod([1-v for k,v in self.clustering.completnesses.iteritems() if k not in self.genomes and k in self.clustering.genome2len.keys()])

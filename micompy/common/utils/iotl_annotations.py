@@ -1,4 +1,6 @@
-from pylab import *
+from matplotlib.cm  import get_cmap
+from numpy import sort
+
 
 shape_star = str(3)
 red = "#ff0000"
@@ -31,7 +33,7 @@ COLOR,#000000
 COLOR_BRANCHES,0
 
 LEGEND_TITLE,%s
-LEGEND_SHAPES,%s 
+LEGEND_SHAPES,%s
 LEGEND_COLORS,%s
 LEGEND_LABELS,%s
 
@@ -89,7 +91,7 @@ def taxa_data(genomes, file):
     dat = [ ",".join([k, "range", color_map[v],v])  + "\n" for k,v in dat.iteritems() if v != ""]
     with open(file,"w") as handle:
         handle.writelines(template_colours("".join(dat)))
-
+    return color_map
 
 
 def env_data(genomes, file):
@@ -115,3 +117,12 @@ def class_data(genomes, class_dict, file , name = "derep_clusters"):
     with open(file,"w") as handle:
         handle.writelines(template_strips("environment",color_map,"".join(dat)))
 
+
+def clade_data(genomes, taxo_dict, file):
+    dat = taxo_dict #{g.get_meta('short_name') : g.get_meta('phylum', default = "") + g.get_meta('taxonomy_external', default = "") for g in genomes if g.is_good()}
+    factors = list(set(dat.values()))
+    cm = get_cmap('Set3')
+    color_map = {k : float_to_rgb(cm(1.*i/len(factors))[0:3]) for i,k in enumerate(factors)}
+    dat = [ ",".join([k, "range", color_map[v],v])  + "\n" for k,v in dat.iteritems() if v != ""]
+    with open(file,"w") as handle:
+        handle.writelines(template_colours("".join(dat)))

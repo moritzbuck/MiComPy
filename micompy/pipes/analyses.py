@@ -271,7 +271,7 @@ def phylophlan(genomes, output, cpus = 1, phylophlan_folder = "/home/moritz/repo
     in_dir = pjoin(phylophlan_folder, "input", proj_name)
     os.makedirs(in_dir)
     for g in genomes:
-        call(["cp", g.proteom, in_dir])
+        call(["cp", g.proteom, pjoin(in_dir,"fff_" + g.name + ".faa") ])
     for g in default_genomes:
         call(["cp", g, in_dir])
     for l in os.listdir(in_dir):
