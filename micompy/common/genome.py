@@ -1,11 +1,13 @@
 import os
 from subprocess import call, Popen, PIPE
 from Bio import SeqIO
+from Bio.SeqRecord import SeqRecord
 from os.path import join as pjoin
 from os import makedirs
 import json
 from micompy.common.tools.checkm import Checkm
 from micompy.common.tools.mash import MASH
+from micompy.common.tools.bbmap import bbmap
 
 class Genome(object):
     def __repr__(self):
@@ -30,6 +32,7 @@ class Genome(object):
         self.metadata = None
         self.cluster = None
         self.checkm_meta = None
+        self.fakereads = pjoin(self.path, self.name + ".fakereads.fasta")
 
         self.json = pjoin(self.path, name + ".json")
         if not os.path.exists(self.path):
@@ -44,16 +47,15 @@ class Genome(object):
             self.metadata.update(manual_metadata)
         self.proteom = pjoin(self.path, name + ".faa")
         self.genome = pjoin(self.path, name + ".fna")
-        self.mash = pjoin(self.path, name + ".msh")
+        self.mash = pjoin(self.path, name + ".fna.msh")
         self.short_proteom = pjoin(self.path, self.metadata['short_name'] + ".faa") if self.metadata['short_name'] == self.metadata['short_name'] else None
+        self.taxo = None
+
 
     def prokka(self, cpus=1, sequence = None):
         FNULL = open(os.devnull, 'w')
         return call(["prokka", "--centre", "X", "--outdir", self.path, "--force",  "--prefix" , self.name, "--locustag", self.name, "--cpus", str(cpus), sequence if sequence else self.ref], stderr = FNULL)
-
-    def compute_mash(self, cpus=1, k = 21, mash_len=10000 ):
-        FNULL = open(os.devnull, 'w')
-        return call(["mash", "sketch", "-o", self.mash, "-p", str(cpus), "-k", str(k), "-s",str(mash_len), self.genome], stderr = FNULL)
+        close(FNULL)
 
     def compute_checkm(self, cpus=1):
         checker = Checkm()
@@ -65,15 +67,15 @@ class Genome(object):
         masher.run_mash_sketch(self)
 
     def mash_compare(self,g, cpus=1, ):
-        FNULL = open(os.devnull, 'w')
-        cmd = Popen(["mash", "dist", "-p", str(cpus), self.mash, g.mash], stderr = FNULL, stdout=PIPE)
-        out = cmd.stdout.read().split()
-        out_dict = {}
-        out_dict['dist'] = float(out[2])
-        out_dict['pvalue'] = float(out[3])
-        out_dict['counts'] = int(out[4].split("/")[0])
-        out_dict['nb_kmers'] = int(out[4].split("/")[1])
+        masher = MASH()
+        out_dict = masher.mash_compare(self,g)
         return out_dict
+
+    def mash_compare_many(self,g, cpus=8, ):
+        masher = MASH()
+        out_dict = masher.mash_compare_many(self,g, cpus)
+        return out_dict
+
 
     def is_annotated(self):
         return os.path.exists(self.proteom)
@@ -91,11 +93,30 @@ class Genome(object):
 
 
     def get_meta(self, field, default = None):
+
         if self.metadata.has_key(field):
             return self.metadata[field] if self.metadata[field] == self.metadata[field] else default
         else :
             return -1
 
+    def clean_proteom(self):
+        if not os.path.exists(pjoin(self.path, "original_files", "protein_name_map.csv")):
+            name_map = {}
+
+            with open(self.proteom) as handle:
+                all_prots = [p for p in SeqIO.parse(handle,"fasta")]
+
+
+            for i,p in enumerate(all_prots):
+                name_map[p.id] = self.name + "_" + str(i).zfill(5)
+                p.id =  name_map[p.id]
+                p.description = ""
+
+            with open(pjoin(self.path, "original_files", "protein_name_map.csv"), "w") as handle:
+                handle.writelines([k + "," + v + "\n" for k, v in name_map.items()])
+
+            with open(self.proteom, "w") as handle:
+                SeqIO.write(all_prots, handle, "fasta")
 
     def write_data(self):
         temp = {}
@@ -117,13 +138,55 @@ class Genome(object):
         self.checkm_meta = temp['checkm']
 
     def completness(self):
-        return self.checkm_meta['Completeness']/100.0 if self.checkm_meta.has_key('Completeness') else -1
+        return float(self.checkm_meta['Completeness'])/100.0 if self.checkm_meta.has_key('Completeness') else -1
 
     def contamination(self):
-        return self.checkm_meta['Contamination']/100.0 if self.checkm_meta.has_key('Completeness') else -1
+        return float(self.checkm_meta['Contamination'])/100.0 if self.checkm_meta.has_key('Completeness') else -1
 
     def is_good(self, min_comp = 0.35, max_cont = 0.05):
         return (self.completness() > min_comp and self.contamination() < max_cont and self.metadata['phylum'] != "Chloroflexi" and self.metadata['phylum'] != "Elusimicrobia") or self.metadata['type'] == "SAG"
 
     def conv_name(self):
         return  self.name if self.metadata['short_name'] != self.metadata['short_name'] else self.metadata['short_name']
+
+    def get_sequence(self):
+        with open(self.genome) as handle:
+            seqs = [s for s in SeqIO.parse(handle, "fasta")]
+        return seqs
+
+    def get_ANI(self,genome):
+        mapper = bbmap()
+        if not os.path.exists(genome.fakereads):
+            genome.make_fake_reads()
+
+        if not os.path.exists(pjoin(self.path,"ref")):
+            mapper.make_index(self)
+
+        return mapper.get_ANI(self,genome.fakereads)
+
+    def make_bbmap_index(self):
+        mapper = bbmap()
+        mapper.make_index(self)
+
+
+    def make_fake_reads(self, read_len = 150):
+        seqs = self.get_sequence()
+        split_seq = lambda seq, x : [seq[(i*x):(i*x+x)]for i in  range(len(seq)/x)]
+
+        reads = sum([ split_seq(str(s.seq),read_len) for s in seqs if len(s) > read_len], [])
+        zz = len(str(len(reads)))
+
+        with open(self.fakereads, "w") as handle:
+            handle.writelines([">" + self.name + "_fakeread_" + str(i).zfill(zz) + "\n" + r + "\n" for i,r in enumerate(reads)])
+
+    def get_taxo(self, taxDb):
+        if self.taxo:
+            return self.taxo
+        elif self.metadata.get('species_taxid'):
+            taxid = self.metadata.get('species_taxid')
+            rank = taxDb.get_rank(taxDb.get_lineage(taxid))
+            taxa = taxDb.get_taxid_translator(taxDb.get_lineage(taxid))
+            self.taxo = {rank[k] : taxa[k] for k in rank}
+            return self.taxo
+        else :
+            return None

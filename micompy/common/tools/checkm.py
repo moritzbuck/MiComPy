@@ -45,7 +45,7 @@ class Checkm(object):
         assert len([f for f in os.listdir(infolder) if f[-4:]==".fna"]) == 1, "More than one (or no) genome file in %s (finishing in .fna)" % (infolder)
 
         with open(os.devnull, 'w') as FNULL:
-            out = check_output(["checkm", "analyze", "-t", str(nproc), self.checkm_marker_sets[marker_set], infolder, temp_dir], stderr = FNULL)
+            out = check_output(["checkm", "analyze", "-g", "-x", "faa", "-t", str(nproc), self.checkm_marker_sets[marker_set], infolder, temp_dir], stderr = FNULL)
             dat = check_output(["checkm", "qa", self.checkm_marker_sets[marker_set], temp_dir], stderr = FNULL)
 
         shutil.rmtree(temp_dir)
