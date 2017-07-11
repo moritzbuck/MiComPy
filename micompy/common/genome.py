@@ -154,8 +154,8 @@ class Genome(object):
             seqs = [s for s in SeqIO.parse(handle, "fasta")]
         return seqs
 
-    def get_ANI(self,genome):
-        mapper = bbmap()
+    def get_ANI(self,genome, jni=True):
+        mapper = bbmap(jni=jni)
         if not os.path.exists(genome.fakereads):
             genome.make_fake_reads()
 
