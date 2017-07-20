@@ -4,25 +4,22 @@ import shutil
 from subprocess import call, check_output, Popen, PIPE
 import json
 from os.path import join as pjoin
+from micompy.common.tools.tool import Tool
 
-class bbmap(object):
-    def __init__(self, executable = "bbmap.sh", jni=True ):
-        self.executable = executable
+class BBmap(Tool):
+    def __init__(self, executable = "bbmap.sh", jni=True , kmer = 13):
+        Tool.__init__(self, name = "BBMap", executable = executable)
         self.jni = "jni=t" if jni else "jni=f"
-        try:
-            with open(os.devnull, 'w') as handle:
-                subprocess.call([self.executable, "-h"], stdout=handle)
-        except OSError as e:
-            print("bbmap not found")
+        self.kmer = "k=%d" % (kmer)
 
 
     def make_index(self, genome):
             with open(os.devnull, 'w') as handle:
-                call([self.executable, "ref="+genome.genome, "path="+genome.path], stdout=handle, stderr=handle)
+                call([self.executable, "ref="+genome.genome, "path="+genome.path, self.kmer], stdout=handle, stderr=handle)
 
     def get_ANI(self, genome, reads, target_id = 0.1):
         FNULL = open(os.devnull, 'w')
-        cmd = Popen([self.executable, "ref="+genome.genome, "path="+genome.path, "in="+reads, "out=/dev/null", "minid=" +str(target_id), self.jni], stderr = PIPE, stdout=PIPE)
+        cmd = Popen([self.executable, "ref="+genome.genome, "path="+genome.path, "in="+reads, "out=/dev/null", "minid=" +str(target_id), self.jni, self.kmer], stderr = PIPE, stdout=PIPE)
         out_lines = cmd.stderr.readlines()
         FNULL.close()
 

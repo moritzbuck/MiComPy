@@ -4,21 +4,14 @@ import shutil
 from subprocess import call, Popen, PIPE, check_output
 import json
 from os.path import join as pjoin
+from micompy.common.tools.tool import Tool
 
-class MASH(object):
-
+class MASH(Tool):
 
     def __init__(self, executable = "mash", kmer=21, hashes=1000 ):
-        self.executable = executable
+        Tool.__init__(self, name = "MASH", executable = executable)
         self.kmer = kmer
         self.hashes=hashes
-
-        try:
-            with open(os.devnull, 'w') as handle:
-                subprocess.call([self.executable, "-h"], stdout=handle)
-        except OSError as e:
-            print("mash not found")
-
 
     def run_mash_sketch(self, g, nproc = 1):
         infolder = g.path

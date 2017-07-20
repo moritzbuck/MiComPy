@@ -4,8 +4,9 @@ import shutil
 from subprocess import call, check_output
 import json
 from os.path import join as pjoin
+from micompy.common.tools.tool import Tool
 
-class Checkm(object):
+class CheckM(Tool):
     checkm_fields = ['Bin Id',
     'Marker lineage',
     '# genomes',
@@ -26,14 +27,7 @@ class Checkm(object):
     }
 
     def __init__(self, executable = "checkm" ):
-        self.executable = executable
-
-        try:
-            with open(os.devnull, 'w') as handle:
-                subprocess.call([self.executable, "-h"], stdout=handle)
-        except OSError as e:
-            print("Checkm not found")
-
+        Tool.__init__(self, name = "CheckM", executable = executable)
 
     def run_checkm(self, g, marker_set = "Bacteria", nproc = 1):
         infolder = g.path
