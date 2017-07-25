@@ -10,6 +10,7 @@ from numpy import random as nrandom
 from numpy import nan
 from random import random
 from tqdm import tqdm
+from collections import defaultdict
 
 class Genome(object):
     def __repr__(self):
@@ -67,7 +68,7 @@ class Genome(object):
         clean_rm(pjoin(self.path,"ref"))
 
     def prokka(self, cpus=1, sequence = None):
-        ############### PUT IN TOOOOOOOOOOOOOOOOOOOLS 
+        ############### PUT IN TOOOOOOOOOOOOOOOOOOOLS
         FNULL = open(os.devnull, 'w')
         return call(["prokka", "--centre", "X", "--outdir", self.path, "--force",  "--prefix" , self.name, "--locustag", self.name, "--cpus", str(cpus), sequence if sequence else self.ref], stderr = FNULL)
         close(FNULL)
@@ -251,3 +252,28 @@ class Genome(object):
         fake.clean()
 
         return mapping
+
+    def get_kmer_comp(self, k = 3):
+        strs = [str(seq.seq) for seq in self.get_sequence()]
+
+        out = defaultdict(int)
+        
+        for s in strs:
+            for i in range(len(s)-k+1):
+                kk = s[i:(i+k)]
+                if not "N" in kk:
+                    out[kk] += 1
+                else :
+                    out['ambig'] += 1
+                
+        tot_ks = sum(out.values())
+        out = {kk : float(v)/tot_ks for kk,v in tqdm(out.items())}
+        return out
+
+    def kmers(self,k):
+        bases = ['A','T','C','G']
+        times_four = lambda l : sum([[b]*4 for b in l],[])
+        kmers = bases
+        for  i in range(1,k):
+            kmers = [ "".join([a[0],b]) for a, b in zip(kmers*4, times_four(kmers))]
+        return kmers
