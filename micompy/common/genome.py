@@ -257,7 +257,7 @@ class Genome(object):
         strs = [str(seq.seq) for seq in self.get_sequence()]
 
         out = defaultdict(int)
-        
+
         for s in strs:
             for i in range(len(s)-k+1):
                 kk = s[i:(i+k)]
@@ -265,7 +265,7 @@ class Genome(object):
                     out[kk] += 1
                 else :
                     out['ambig'] += 1
-                
+
         tot_ks = sum(out.values())
         out = {kk : float(v)/tot_ks for kk,v in tqdm(out.items())}
         return out

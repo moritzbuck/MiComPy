@@ -32,7 +32,7 @@ from micompy.common.utils.iotl_annotations import *
 from dendropy import *
 import csv
 
-root = "/home/moritz/Data/people/moritz/CDs/"
+root = "/home/moritz/people/moritz/CDs/"
 data_root = pjoin(root, "data/")
 analyses_root = pjoin(root, "analyses")
 google_data = pjoin(root, "OD1s and more - Sheet1.csv")
