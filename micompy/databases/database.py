@@ -24,7 +24,7 @@ class Database(object) :
         if type(key) == int :
             return self.genomes[key]
         else :
-            li = [g for g in genomes if g.name == key]
+            li = [g for g in self.genomes if g.name == key]
             assert len(li) == 1, "There are more than one genomes with the name " + key
             return li[0]
 
