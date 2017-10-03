@@ -25,9 +25,11 @@ class Database(object) :
             return self.genomes[key]
         else :
             li = [g for g in self.genomes if g.name == key]
-            assert len(li) == 1, "There are more than one genomes with the name " + key
-            return li[0]
-
+            assert len(li) < 2, "There are more than one genomes with the name " + key
+            if len(li) ==1 :
+                return li[0]
+            else :
+                return None
 
     def __init__(self,  data_path, workbench = None, genomes = [], taxDb = None):
         self.data_path = data_path
