@@ -14,7 +14,7 @@ class HMMer(Tool):
         'tblout' : ["target_name" , "target_accession"  , "query_name" , "query_accession" , "E-value","score" , "bias" , "dom-e-Evalue", "dom-score" , "dom-bias", 'exp' , 'reg' , 'clu' , 'ov' ,'env', 'dom', 'rep', 'inc', 'description' ]
     }
 
-    
+
 
 
 
@@ -24,7 +24,7 @@ class HMMer(Tool):
 
     def hmmsearch_pfam_presence(self, genome, pfams = "/home/moritz/DataBases/PFAM/Pfam-A.hmm", ncpus = 1, evalue_cutoff = 0.001):
         temp_file = tempfile.NamedTemporaryFile(suffix='.hmmsearch.out', delete = False).name
-        print "Running HMMsearch with pfams on", genome
+        print("Running HMMsearch with pfams on", genome)
         with open(os.devnull, 'w') as handle:
             call([self.executable, "--domtblout", temp_file, "--cpu", str(ncpus) , pfams, genome.proteom], stdout=handle, stderr=handle)
         output = self.parse_hmmer_tabout(temp_file, output = 'domtblout')
@@ -34,7 +34,7 @@ class HMMer(Tool):
 
     def hmmsearch(self, hmm, db, ncpus = 1, evalue_cutoff = 0.001):
         temp_file = tempfile.NamedTemporaryFile(suffix='.hmmsearch.out', delete = False).name
-        print "Running HMMsearch"
+        print("Running HMMsearch")
         with open(os.devnull, 'w') as handle:
             call([self.executable, "--tblout", temp_file, "--cpu", str(ncpus) , hmm, db], stdout=handle, stderr=handle)
         output = self.parse_hmmer_tabout(temp_file)

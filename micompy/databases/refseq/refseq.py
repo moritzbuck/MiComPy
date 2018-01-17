@@ -31,6 +31,7 @@ def download_ftp(genome_path, genome_file, fhead, dir):
         ftp.cwd(dir)
         ftp.retrbinary("RETR " + fhead + "_genomic.fna.gz", open(pjoin(genome_path, fhead +".fna.gz"),"w").write)
         ftp.retrbinary("RETR " + fhead + "_protein.faa.gz", open(pjoin(genome_path, fhead +".faa.gz"),"w").write)
+#        ftp.retrbinary("RETR " + fhead + "_protein.faa.gz", open(pjoin(genome_path, fhead +".gff.gz"),"w").write)
         ftp.close()
         if not os.path.exists(pjoin(genome_path, "original_files")) :
             os.makedirs(pjoin(genome_path, "original_files"))
